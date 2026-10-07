@@ -561,7 +561,8 @@ function escucharMovimientos() {
 // =========================================================
 function actualizarEstadisticas() {
     $('statPiezas').textContent = piezas.length;
-    $('statUnidades').textContent = piezas.reduce((a, p) => a + (Number(p.stockActual) \vert{}\vert{} 0), 0);$('statBajoMin').textContent = piezas.filter(p => Number(p.stockActual) > 0 && Number(p.stockActual) <= Number(p.stockMin)).length;
+    $('statUnidades').textContent = piezas.reduce((a, p) => a + (Number(p.stockActual) || 0), 0);
+    $('statBajoMin').textContent = piezas.filter(p => Number(p.stockActual) > 0 && Number(p.stockActual) <= Number(p.stockMin)).length;
     $('statSinStock').textContent = piezas.filter(p => Number(p.stockActual) === 0).length;
 }
 
