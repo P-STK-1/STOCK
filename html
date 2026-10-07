@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VOLMEX - Estandarización y Control de Piezas</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Firebase Web SDK -->
+    <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore-compat.js"></script>
+
+    <!-- Librerías de QR, Código de Barras y Escáner -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+
+    <!-- Librerías para exportar a PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+</head>
+
+<body class="bg-slate-100 min-h-screen text-slate-800">
+
+<header class="bg-orange-600 text-white shadow-lg sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div>
+            <h1 class="text-2xl font-extrabold tracking-wide">VOLMEX</h1>
+            <p class="text-xs text-orange-100">Estandarización, control y trazabilidad de piezas en stock</p>
+        </div>
+
+        <span id="estadoConexion" class="text-xs font-semibold bg-amber-100 text-amber-700 px-2 py-1 rounded-full">Conectando con Firebase...</span>
+
+        <div class="flex flex-wrap gap-2">
+            <button onclick="mostrarSeccion('inventario')" class="bg-white/15 hover:bg-white/25 px-3 py-2 rounded-lg text-sm font-semibold">📦 Inventario</button>
+            <button onclick="mostrarSeccion('solicitudes')" class="bg-white/15 hover:bg-white/25 px-3 py-2 rounded-lg text-sm font-semibold">📝 Solicitudes</button>
+            <button onclick="mostrarSeccion('movimientos')" class="bg-white/15 hover:bg-white/25 px-3 py-2 rounded-lg text-sm font-semibold">🔄 Movimientos</button>
+            <button onclick="abrirEscaner()" class="bg-white text-orange-700 hover:bg-orange-50 px-3 py-2 rounded-lg text-sm font-bold shadow">📷 Escanear</button>
+        </div>
+    </div>
+</header>
+
+<main class="max-w-7xl mx-auto p-4 md:p-6">
+
+    <!-- INDICADORES -->
+    <section id="seccionInventario">
+        <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
+            <div class="bg-white rounded-xl shadow p-4">
+                <div class="text-xs text-slate-500">Piezas registradas</div>
+                <div id="statPiezas" class="text-2xl font-extrabold mt-1">0</div>
+            </div>
+            <div class="bg-white rounded-xl shadow p-4">
+                <div class="text-xs text-slate-500">Unidades en stock</div>
+                <div id="statUnidades" class="text-2xl font-extrabold mt-1">0</div>
+            </div>
+            <div class="bg-white rounded-xl shadow p-4">
+                <div class="text-xs text-slate-500">Bajo mínimo</div>
+                <div id="statBajoMin" class="text-2xl font-extrabold mt-1 text-red-600">0</div>
+            </div>
+            <div class="bg-white rounded-xl shadow p-4">
+                <div class="text-xs text-slate-500">Sin stock</div>
+                <div id="statSinStock" class="text-2xl font-extrabold mt-1 text-red-700">0</div>
+            </div>
+            <div class="bg-white rounded-xl shadow p-4">
+                <div class="text-xs text-slate-500">Solicitudes pendientes</div>
+                <div id="statSolicitudes" class="text-2xl font-extrabold mt-1 text-orange-600">0</div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-5">
+
+            <!-- FORMULARIO PIEZAS -->
+            <section class="xl:col-span-4 bg-white rounded-xl shadow-md p-5 h-fit">
+                <div class="flex items-center justify-between border-b pb-3 mb-4">
+                    <div>
+                        <h2 id="tituloFormulario" class="font-bold text-lg">Registrar nueva pieza</h2>
+                        <p class="text-xs text-slate-500">Los datos de las piezas se guardan en Firebase Firestore.</p>
+                    </div>
+                    <span id="estadoEdicion" class="hidden text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-semibold">EDITANDO</span>
+                </div>
+
+                <form id="formPieza" onsubmit="guardarPieza(event)" class="space-y-3 text-sm">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block font-semibold mb-1">Categoría</label>
+                            <select id="categoria" onchange="actualizarCodigoVistaPrevia()" class="w-full border rounded-lg p-2.5" required>
+                                <option value="V">Volteo (V)</option>
+                                <option value="L">Lowboy (L)</option>
+                                <option value="G">Góndola (G)</option>
+                                <option value="X">Genérico (X)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-semibold mb-1">Proceso</label>
+                            <select id="proceso" onchange="actualizarCodigoVistaPrevia()" class="w-full border rounded-lg p-2.5" required>
+                                <option value="D">Corte / Doblez (D)</option>
+                                <option value="F">Corte / Flat (F)</option>
+                                <option value="M">Maquinado (M)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                        <div class="text-xs font-semibold text-orange-700">Código estandarizado</div>
+                        <div id="codigoGeneradoVista" class="font-mono text-lg font-extrabold text-orange-900 mt-1">SVD-P-001</div>
+                        <div class="text-[11px] text-orange-700 mt-1">El consecutivo lo administra Firebase para evitar duplicados.</div>
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold mb-1">Nombre de la pieza</label>
+                        <input type="text" id="nombre" placeholder="Ej. MENSULA IZQ." class="w-full border rounded-lg p-2.5" required>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block font-semibold mb-1">Material</label>
+                            <input type="text" id="material" placeholder="Ej. A-36" class="w-full border rounded-lg p-2.5" required>
+                        </div>
+                        <div>
+                            <label class="block font-semibold mb-1">Calibre / espesor</label>
+                            <input type="text" id="calibre" placeholder="Ej. 3/16, 10 mm" class="w-full border rounded-lg p-2.5" required>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block font-semibold mb-1">Unidad de medida</label>
+                            <select id="unidad" class="w-full border rounded-lg p-2.5">
+                                <option value="pieza">Pieza</option>
+                                <option value="juego">Juego</option>
+                                <option value="par">Par</option>
+                                <option value="metro">Metro</option>
+                                <option value="kg">Kilogramo</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-semibold mb-1">Ubicación en almacén</label>
+                            <input type="text" id="ubicacion" placeholder="Ej. Rack A-03" class="w-full border rounded-lg p-2.5">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold mb-1">Aplicación principal</label>
+                        <input type="text" id="aplicacion" placeholder="Ej. Bastidor, suspensión, tanque..." class="w-full border rounded-lg p-2.5">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block font-semibold mb-1">Proveedor / fabricante</label>
+                            <input type="text" id="proveedor" class="w-full border rounded-lg p-2.5" placeholder="Opcional">
+                        </div>
+                        <div>
+                            <label class="block font-semibold mb-1">No. de plano</label>
+                            <input type="text" id="numeroPlano" class="w-full border rounded-lg p-2.5" placeholder="Ej. PL-0258">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2">
+                        <div>
+                            <label class="block font-semibold mb-1 text-xs">Stock actual</label>
+                            <input type="number" id="stockActual" value="0" min="0" class="w-full border rounded-lg p-2.5" required>
+                        </div>
+                        <div>
+                            <label class="block font-semibold mb-1 text-xs">Stock mínimo</label>
+                            <input type="number" id="stockMin" value="1" min="0" class="w-full border rounded-lg p-2.5" required>
+                        </div>
+                        <div>
+                            <label class="block font-semibold mb-1 text-xs">Stock máximo</label>
+                            <input type="number" id="stockMax" value="5" min="1" class="w-full border rounded-lg p-2.5" required>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold mb-1">Descripción / observaciones</label>
+                        <textarea id="descripcion" rows="3" class="w-full border rounded-lg p-2.5" placeholder="Características, medidas, observaciones o criterios de estandarización..."></textarea>
+                    </div>
+
+                    <input type="hidden" id="editDocId" value="">
+
+                    <div class="flex gap-2 pt-2">
+                        <button type="submit" id="btnGuardar" class="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-lg shadow">💾 Guardar pieza</button>
+                        <button type="button" id="btnCancelarEdicion" onclick="cancelarEdicion()" class="hidden bg-slate-200 hover:bg-slate-300 px-4 rounded-lg font-semibold">Cancelar</button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- INVENTARIO -->
+            <section class="xl:col-span-8 bg-white rounded-xl shadow-md p-5">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 border-b pb-4 mb-4">
+                    <div>
+                        <h2 class="font-bold text-lg">Inventario estandarizado</h2>
+                        <p class="text-xs text-slate-500">Busca por código, nombre, material, ubicación o aplicación.</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2 mb-4">
+                    <input id="filtroNombre" oninput="aplicarFiltros()" type="search" placeholder="🔎 Buscar código o nombre..." class="border rounded-lg p-2.5 text-sm">
+                    <select id="filtroMaterial" onchange="aplicarFiltros()" class="border rounded-lg p-2.5 text-sm"><option value="">Todos los materiales</option></select>
+                    <select id="filtroCalibre" onchange="aplicarFiltros()" class="border rounded-lg p-2.5 text-sm"><option value="">Todos los calibres</option></select>
+                    <select id="filtroCategoria" onchange="aplicarFiltros()" class="border rounded-lg p-2.5 text-sm">
+                        <option value="">Todas las categorías</option>
+                        <option value="V">Volteo</option><option value="L">Lowboy</option><option value="G">Góndola</option><option value="X">Genérico</option>
+                    </select>
+                    <select id="filtroEstadoStock" onchange="aplicarFiltros()" class="border rounded-lg p-2.5 text-sm">
+                        <option value="">Todo el stock</option><option value="BAJO">Bajo mínimo</option><option value="OK">Stock normal</option><option value="CERO">Sin stock</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center justify-between mb-3">
+        <div id="textoResultados" class="text-xs text-slate-500">0 resultados</div>
+        
+        <!-- Nuevo contenedor con el botón de PDF y limpiar filtros -->
+        <div class="flex items-center gap-3">
+            <button onclick="descargarPDFInventario()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm flex items-center gap-1">
+                📄 Descargar PDF
+            </button>
+            <button onclick="limpiarFiltros()" class="text-xs text-orange-700 hover:underline font-semibold">Limpiar filtros</button>
+        </div>
+    </div>
+
+                <div class="overflow-x-auto border rounded-lg">
+                    <table class="w-full text-xs text-left min-w-[980px]">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-700 border-b">
+                                <th class="p-2.5">Código</th>
+                                <th class="p-2.5">Nombre</th>
+                                <th class="p-2.5">Material</th>
+                                <th class="p-2.5">Ubicación</th>
+                                <th class="p-2.5 text-center">Stock</th>
+                                <th class="p-2.5">Estado</th>
+                                <th class="p-2.5 text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaPiezasBody" class="divide-y"><tr><td colspan="7" class="p-5 text-center text-slate-400">Cargando...</td></tr></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </section>
+
+    <!-- SOLICITUDES -->
+    <section id="seccionSolicitudes" class="hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            <section class="lg:col-span-5 bg-white rounded-xl shadow-md p-5 h-fit">
+                <div class="flex justify-between items-center border-b pb-3 mb-4">
+                    <h2 id="tituloSolicitud" class="font-bold text-lg">Solicitar más piezas</h2>
+                    <span id="estadoEdicionSolicitud" class="hidden text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-semibold">EDITANDO</span>
+                </div>
+                <form id="formSolicitud" onsubmit="guardarSolicitud(event)" class="space-y-3 text-sm">
+                    <input type="hidden" id="editSolicitudId" value="">
+                    <div>
+                        <label class="block font-semibold mb-1">Pieza</label>
+                        <select id="solicitudPieza" class="w-full border rounded-lg p-2.5" required><option value="">Selecciona una pieza</option></select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div><label class="block font-semibold mb-1">Cantidad</label><input type="number" id="solicitudCantidad" min="1" value="1" class="w-full border rounded-lg p-2.5" required></div>
+                        <div><label class="block font-semibold mb-1">Prioridad</label>
+                            <select id="solicitudPrioridad" class="w-full border rounded-lg p-2.5">
+                                <option value="Normal">Normal</option><option value="Alta">Alta</option><option value="Urgente">Urgente</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div><label class="block font-semibold mb-1">Solicita</label><input type="text" id="solicitudSolicitante" placeholder="Nombre del responsable" class="w-full border rounded-lg p-2.5" required></div>
+                    <div>
+                        <label class="block font-semibold mb-1">Estado</label>
+                        <select id="solicitudEstado" class="w-full border rounded-lg p-2.5">
+                            <option value="Pendiente">Pendiente</option><option value="En proceso">En proceso</option><option value="Completada">Completada</option><option value="Cancelada">Cancelada</option>
+                        </select>
+                    </div>
+                    <div><label class="block font-semibold mb-1">Motivo / comentario</label><textarea id="solicitudMotivo" rows="4" placeholder="Ej. Se agotó la pieza y hay producción programada..." class="w-full border rounded-lg p-2.5"></textarea></div>
+                    
+                    <div class="flex gap-2">
+                        <button type="submit" id="btnGuardarSolicitud" class="flex-1 w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-lg">📝 Guardar solicitud</button>
+                        <button type="button" id="btnCancelarEdicionSolicitud" onclick="cancelarEdicionSolicitud()" class="hidden bg-slate-200 hover:bg-slate-300 px-4 rounded-lg font-semibold">Cancelar</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="lg:col-span-7 bg-white rounded-xl shadow-md p-5">
+                <div class="flex items-center justify-between border-b pb-3 mb-4">
+                    <div><h2 class="font-bold text-lg">Solicitudes de piezas</h2><p class="text-xs text-slate-500">Actualiza el estado y conserva la trazabilidad de abastecimiento.</p></div>
+                    <select id="filtroSolicitudEstado" onchange="renderSolicitudes()" class="border rounded-lg p-2 text-xs"><option value="">Todas</option><option value="Pendiente">Pendientes</option><option value="En proceso">En proceso</option><option value="Completada">Completadas</option><option value="Cancelada">Canceladas</option></select>
+                </div>
+                <div class="overflow-x-auto border rounded-lg">
+                    <table class="w-full text-xs text-left min-w-[850px]">
+                        <thead><tr class="bg-slate-100 border-b"><th class="p-2.5">Fecha</th><th class="p-2.5">Pieza</th><th class="p-2.5">Cantidad</th><th class="p-2.5">Prioridad</th><th class="p-2.5">Solicita</th><th class="p-2.5">Estado</th><th class="p-2.5">Acciones</th></tr></thead>
+                        <tbody id="tablaSolicitudesBody" class="divide-y"><tr><td colspan="7" class="p-5 text-center text-slate-400">Cargando...</td></tr></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </section>
+
+    <!-- MOVIMIENTOS -->
+    <section id="seccionMovimientos" class="hidden">
+        <section class="bg-white rounded-xl shadow-md p-5">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border-b pb-3 mb-4">
+                <div><h2 class="font-bold text-lg">Movimientos de stock</h2><p class="text-xs text-slate-500">Entradas, salidas y ajustes para conservar el historial de inventario.</p></div>
+                <button onclick="abrirMovimiento()" class="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-bold">➕ Registrar movimiento</button>
+            </div>
+            <div class="overflow-x-auto border rounded-lg">
+                <table class="w-full text-xs text-left min-w-[900px]">
+                    <thead><tr class="bg-slate-100 border-b"><th class="p-2.5">Fecha</th><th class="p-2.5">Pieza</th><th class="p-2.5">Tipo</th><th class="p-2.5">Cantidad</th><th class="p-2.5">Stock resultante</th><th class="p-2.5">Responsable</th><th class="p-2.5">Motivo</th></tr></thead>
+                    <tbody id="tablaMovimientosBody" class="divide-y"><tr><td colspan="7" class="p-5 text-center text-slate-400">Cargando...</td></tr></tbody>
+                </table>
+            </div>
+        </section>
+    </section>
+</main>
+
+<!-- MODAL ETIQUETA / CÓDIGO QR -->
+<div id="modalQR" class="hidden fixed inset-0 bg-black/75 z-50 p-4 overflow-y-auto">
+    <div class="min-h-full flex items-center justify-center">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl text-center">
+            <div class="flex items-center justify-between border-b pb-3 mb-4">
+                <h3 class="font-bold text-lg text-slate-800">Etiqueta de Pieza</h3>
+                <button onclick="cerrarModalQR()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">×</button>
+            </div>
+
+            <!-- Contenedor imprimible -->
+            <div id="etiquetaImprimir" class="bg-white p-4 border-2 border-slate-900 rounded-xl shadow-inner space-y-3">
+                <div class="text-xs font-black tracking-widest text-orange-600 uppercase border-b border-slate-200 pb-1">VOLMEX - CONTROL DE STOCK</div>
+                <div id="qrCodigoPieza" class="text-xl font-black font-mono text-slate-900">SVD-P-001</div>
+                <div id="qrTituloPieza" class="text-sm font-bold text-slate-800 line-clamp-2">MENSULA IZQUIERDA</div>
+                
+                <!-- QR renderizado aquí -->
+                <div class="flex justify-center items-center my-2 p-2 bg-white border rounded-lg">
+                    <div id="qrcodeContainer"></div>
+                </div>
+
+                <!-- Código de barras en canvas -->
+                <div class="flex justify-center my-1 overflow-hidden">
+                    <svg id="barcodeCanvas"></svg>
+                </div>
+
+                <div id="qrDetallePieza" class="text-[11px] text-slate-600 font-semibold border-t border-slate-200 pt-2">Material: A-36 | Ubicación: Rack A-01</div>
+            </div>
+
+            <div class="mt-5 flex gap-2">
+                <button onclick="imprimirEtiqueta()" class="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-bold py-2.5 rounded-lg text-sm shadow">🖨️ Imprimir</button>
+                <button onclick="cerrarModalQR()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold px-4 py-2.5 rounded-lg text-sm">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL MOVIMIENTO -->
+<div id="modalMovimiento" class="hidden fixed inset-0 bg-black/70 z-50 p-4 overflow-y-auto">
+    <div class="min-h-full flex items-center justify-center">
+        <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl">
+            <div class="flex items-center justify-between border-b pb-3 mb-4"><h3 class="font-bold text-lg">Registrar movimiento</h3><button onclick="cerrarMovimiento()" class="text-slate-500 text-2xl">×</button></div>
+            <form onsubmit="guardarMovimiento(event)" class="space-y-3 text-sm">
+                <div><label class="block font-semibold mb-1">Pieza</label><select id="movPieza" required class="w-full border rounded-lg p-2.5"><option value="">Selecciona una pieza</option></select></div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div><label class="block font-semibold mb-1">Tipo</label><select id="movTipo" class="w-full border rounded-lg p-2.5"><option value="ENTRADA">Entrada</option><option value="SALIDA">Salida</option><option value="AJUSTE">Ajuste absoluto</option></select></div>
+                    <div><label class="block font-semibold mb-1">Cantidad</label><input id="movCantidad" type="number" min="1" value="1" required class="w-full border rounded-lg p-2.5"></div>
+                </div>
+                <div><label class="block font-semibold mb-1">Responsable</label><input id="movResponsable" required class="w-full border rounded-lg p-2.5" placeholder="Nombre del responsable"></div>
+                <div><label class="block font-semibold mb-1">Motivo</label><textarea id="movMotivo" rows="3" class="w-full border rounded-lg p-2.5" placeholder="Producción, compra, consumo, corrección de inventario..."></textarea></div>
+                <button type="submit" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-lg">💾 Guardar movimiento</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL ESCÁNER -->
+<div id="modalEscaner" class="hidden fixed inset-0 bg-black/75 z-50 p-4 overflow-y-auto">
+    <div class="min-h-full flex items-center justify-center">
+        <div class="bg-white rounded-2xl w-full max-w-md p-5 shadow-2xl">
+            <div class="flex items-center justify-between mb-3"><h3 class="font-bold text-lg">Escanear código QR</h3><button onclick="cerrarEscaner()" class="text-slate-500 text-2xl">×</button></div>
+            <div id="reader" class="w-full border rounded-xl bg-black min-h-[200px] flex items-center justify-center text-white">Iniciando cámara...</div>
+            <div class="mt-4 flex gap-2">
+                <button onclick="cerrarEscaner()" class="flex-1 bg-slate-500 hover:bg-slate-600 text-white rounded-lg py-2 text-sm font-semibold">Cerrar escáner</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// =========================================================
+// 1) CONFIGURACIÓN FIREBASE Y VARIABLES
+// =========================================================
+const firebaseConfig = {
+    apiKey: "AIzaSyAVKF5Q0tWa1Yhh2Kk67-MIAbPlG13hlls",
+    authDomain: "p-stk-de67f.firebaseapp.com",
+    projectId: "p-stk-de67f",
+    storageBucket: "p-stk-de67f.firebasestorage.app",
+    messagingSenderId: "1073057092379",
+    appId: "1:1073057092379:web:3d877090d422fb021939be",
+    measurementId: "G-TYN037MFWB"
+};
+
+const ADMIN_PASSWORD = "admin123";
+
+let app, db, auth;
+let piezas = [], solicitudes = [], movimientos = [];
+let html5QrCode = null;
+let unsubscribePiezas = null, unsubscribeSolicitudes = null, unsubscribeMovimientos = null;
+const $ = id => document.getElementById(id);
+
+async function inicializarFirebase() {
+    try {
+        if (!firebase.apps.length) app = firebase.initializeApp(firebaseConfig);
+        else app = firebase.app();
+        
+        db = firebase.firestore();
+        auth = firebase.auth();
+        await auth.signInAnonymously();
+
+        $('estadoConexion').textContent = "Firebase conectado";
+        $('estadoConexion').className = "text-xs font-semibold bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full";
+
+        escucharPiezas();
+        escucharSolicitudes();
+        escucharMovimientos();
+    } catch (err) {
+        console.error(err);
+        $('estadoConexion').textContent = "Error de Firebase";
+        $('estadoConexion').className = "text-xs font-semibold bg-red-100 text-red-700 px-2 py-1 rounded-full";
+        alert("No se pudo conectar a Firebase.");
+    }
+}
+window.addEventListener("DOMContentLoaded", inicializarFirebase);
+
+function mostrarSeccion(seccion) {
+    $('seccionInventario').classList.toggle('hidden', seccion !== 'inventario');
+    $('seccionSolicitudes').classList.toggle('hidden', seccion !== 'solicitudes');
+    $('seccionMovimientos').classList.toggle('hidden', seccion !== 'movimientos');
+}
+
+// =========================================================
+// 2) LISTENERS EN TIEMPO REAL
+// =========================================================
+function escucharPiezas() {
+    if (unsubscribePiezas) unsubscribePiezas();
+    unsubscribePiezas = db.collection('piezas').orderBy('fechaRegistro', 'desc').onSnapshot(snapshot => {
+        piezas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        actualizarEstadisticas();
+        actualizarSelectPiezas();
+        aplicarFiltros();
+        actualizarCodigoVistaPrevia();
+    });
+}
+function escucharSolicitudes() {
+    if (unsubscribeSolicitudes) unsubscribeSolicitudes();
+    unsubscribeSolicitudes = db.collection('solicitudes').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
+        solicitudes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        $('statSolicitudes').textContent = solicitudes.filter(s => s.estado === 'Pendiente').length;
+        renderSolicitudes();
+    });
+}
+function escucharMovimientos() {
+    if (unsubscribeMovimientos) unsubscribeMovimientos();
+    unsubscribeMovimientos = db.collection('movimientos').orderBy('createdAt', 'desc').limit(100).onSnapshot(snapshot => {
+        movimientos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderMovimientos();
+    });
+}
+
+// =========================================================
+// 3) INVENTARIO Y CÓDIGOS
+// =========================================================
+function actualizarEstadisticas() {
+    $('statPiezas').textContent = piezas.length;
+    $('statUnidades').textContent = piezas.reduce((a, p) => a + (Number(p.stockActual) || 0), 0);
+    $('statBajoMin').textContent = piezas.filter(p => Number(p.stockActual) > 0 && Number(p.stockActual) <= Number(p.stockMin)).length;
+    $('statSinStock').textContent = piezas.filter(p => Number(p.stockActual) === 0).length;
+}
+
+function actualizarCodigoVistaPrevia() {
+    if ($('editDocId').value) return; 
+    const prefijo = `S${$('categoria').value}${$('proceso').value}`;
+    const numeros = piezas
+        .filter(p => String(p.codigoPieza || '').startsWith(prefijo + '-P-'))
+        .map(p => Number(String(p.codigoPieza).split('-P-')[1]))
+        .filter(Number.isFinite);
+    const siguiente = numeros.length ? Math.max(...numeros) + 1 : 1;
+    $('codigoGeneradoVista').textContent = `${prefijo}-P-${String(siguiente).padStart(3, '0')}`;
+}
+
+async function obtenerSiguienteCodigo(categoria, proceso) {
+    const prefijo = `S${categoria}${proceso}`;
+    const numerosLocales = piezas
+        .filter(p => String(p.codigoPieza || '').startsWith(prefijo + '-P-'))
+        .map(p => Number(String(p.codigoPieza).split('-P-')[1]))
+        .filter(Number.isFinite);
+    const minimoInicial = numerosLocales.length ? Math.max(...numerosLocales) : 0;
+    const refContador = db.collection('contadores').doc(prefijo);
+
+    const siguiente = await db.runTransaction(async transaction => {
+        const snap = await transaction.get(refContador);
+        const ultimo = snap.exists ? Number(snap.data().ultimo) || 0 : 0;
+        const numero = Math.max(ultimo, minimoInicial) + 1;
+        transaction.set(refContador, { ultimo: numero, prefijo }, { merge: true });
+        return numero;
+    });
+    return `${prefijo}-P-${String(siguiente).padStart(3, '0')}`;
+}
+
+async function guardarPieza(e) {
+    e.preventDefault();
+    const id = $('editDocId').value.trim();
+    const btn = $('btnGuardar');
+    btn.disabled = true; btn.textContent = "Guardando...";
+
+    try {
+        let codigo = $('codigoGeneradoVista').textContent;
+        if (!id) codigo = await obtenerSiguienteCodigo($('categoria').value, $('proceso').value);
+
+        const data = {
+            codigoPieza: id ? (piezas.find(p=>p.id===id).codigoPieza || codigo) : codigo,
+            categoria: $('categoria').value,
+            proceso: $('proceso').value,
+            nombre: $('nombre').value,
+            material: $('material').value,
+            calibre: $('calibre').value,
+            unidad: $('unidad').value,
+            ubicacion: $('ubicacion').value,
+            aplicacion: $('aplicacion').value,
+            proveedor: $('proveedor').value,
+            numeroPlano: $('numeroPlano').value,
+            stockActual: Number($('stockActual').value),
+            stockMin: Number($('stockMin').value),
+            stockMax: Number($('stockMax').value),
+            descripcion: $('descripcion').value
+        };
+
+        if (id) {
+            await db.collection('piezas').doc(id).update(data);
+            alert("Pieza actualizada con éxito");
+        } else {
+            data.fechaRegistro = firebase.firestore.FieldValue.serverTimestamp();
+            await db.collection('piezas').add(data);
+            alert("Pieza creada con éxito");
+        }
+        cancelarEdicion();
+    } catch (error) {
+        console.error(error);
+        alert("Error al guardar: " + error.message);
+    }
+    btn.disabled = false; btn.textContent = "💾 Guardar pieza";
+}
+
+function editarPieza(id) {
+    const p = piezas.find(x => x.id === id);
+    if(!p) return;
+    
+    $('editDocId').value = p.id;
+    $('categoria').value = p.categoria || "X";
+    $('proceso').value = p.proceso || "M";
+    $('codigoGeneradoVista').textContent = p.codigoPieza;
+    $('nombre').value = p.nombre;
+    $('material').value = p.material || "";
+    $('calibre').value = p.calibre || "";
+    $('unidad').value = p.unidad || "pieza";
+    $('ubicacion').value = p.ubicacion || "";
+    $('aplicacion').value = p.aplicacion || "";
+    $('proveedor').value = p.proveedor || "";
+    $('numeroPlano').value = p.numeroPlano || "";
+    $('stockActual').value = p.stockActual;
+    $('stockMin').value = p.stockMin;
+    $('stockMax').value = p.stockMax;
+    $('descripcion').value = p.descripcion || "";
+
+    $('tituloFormulario').textContent = "Editar pieza: " + p.codigoPieza;
+    $('estadoEdicion').classList.remove('hidden');
+    $('btnCancelarEdicion').classList.remove('hidden');$('btnGuardar').textContent = "💾 Actualizar pieza";
+    window.scrollTo(0, 0);
+}
+
+function cancelarEdicion() {
+    $('formPieza').reset();$('editDocId').value = "";
+    $('tituloFormulario').textContent = "Registrar nueva pieza";
+    $('estadoEdicion').classList.add('hidden');
+    $('btnCancelarEdicion').classList.add('hidden');$('btnGuardar').textContent = "💾 Guardar pieza";
+    actualizarCodigoVistaPrevia();
+}
+
+function eliminarPieza(id) {
+    const pwd = prompt("ACCESO RESTRINGIDO\nIngrese la contraseña para eliminar la pieza:");
+    if (pwd === ADMIN_PASSWORD) {
+        if(confirm("¿Está seguro de eliminar esta pieza permanentemente? Esto no afectará el historial de movimientos.")) {
+            db.collection('piezas').doc(id).delete()
+              .then(() => alert("Pieza eliminada correctamente."))
+              .catch(err => alert("Error al eliminar: " + err.message));
+        }
+    } else if (pwd !== null) {
+        alert("Contraseña incorrecta. No se eliminó la pieza.");
+    }
+}
+
+// =========================================================
+// 4) VISUALIZADOR Y GENERADOR DE CÓDIGO QR / BARRAS
+// =========================================================
+function verQR(id) {
+    const p = piezas.find(x => x.id === id);
+    if (!p) return;
+
+    $('qrCodigoPieza').textContent = p.codigoPieza;
+    $('qrTituloPieza').textContent = p.nombre;
+    $('qrDetallePieza').textContent = `Material: ${p.material || 'N/A'} | Ubicación: ${p.ubicacion || 'Sin asignar'}`;
+
+    // Limpiar contenedor anterior de QR
+    const container = $('qrcodeContainer');
+    container.innerHTML = '';
+
+    // Generar nuevo código QR
+    new QRCode(container, {
+        text: p.codigoPieza,
+        width: 150,
+        height: 150,
+        colorDark : "#000000",
+        colorLight : "#ffffff",
+        correctLevel : QRCode.CorrectLevel.H
+    });
+
+    // Generar código de barras
+    try {
+        JsBarcode("#barcodeCanvas", p.codigoPieza, {
+            format: "CODE128",
+            width: 1.8,
+            height: 40,
+            displayValue: false
+        });
+    } catch(e) { console.error("Error generando barcode", e); }
+
+    $('modalQR').classList.remove('hidden');
+}
+
+function cerrarModalQR() {
+    $('modalQR').classList.add('hidden');
+}
+
+function imprimirEtiqueta() {
+    const contenido = $('etiquetaImprimir').outerHTML;
+    const ventana = window.open('', '_blank', 'height=600,width=600');
+    ventana.document.write('<html><head><title>Imprimir Etiqueta - VOLMEX</title>');
+    ventana.document.write('<script src="https://cdn.tailwindcss.com"><\/script>');
+    ventana.document.write('</head><body class="p-6 flex justify-center items-center bg-white">');
+    ventana.document.write(contenido);
+    ventana.document.write('</body></html>');
+    ventana.document.close();
+    ventana.focus();
+    setTimeout(() => {
+        ventana.print();
+        ventana.close();
+    }, 500);
+}
+
+function aplicarFiltros() {
+    const texto = $('filtroNombre').value.toLowerCase();
+    const mat = $('filtroMaterial').value;
+    const cat = $('filtroCategoria').value;
+    const est = $('filtroEstadoStock').value;
+
+    const filtradas = piezas.filter(p => {
+        let matchTexto = p.nombre.toLowerCase().includes(texto) || (p.codigoPieza && p.codigoPieza.toLowerCase().includes(texto));
+        let matchMat = mat === "" || p.material === mat;
+        let matchCat = cat === "" || p.categoria === cat;
+        
+        let matchEst = true;
+        if (est === "CERO") matchEst = Number(p.stockActual) === 0;
+        else if (est === "BAJO") matchEst = Number(p.stockActual) > 0 && Number(p.stockActual) <= Number(p.stockMin);
+        else if (est === "OK") matchEst = Number(p.stockActual) > Number(p.stockMin);
+
+        return matchTexto && matchMat && matchCat && matchEst;
+    });
+
+    $('textoResultados').textContent = `${filtradas.length} resultados`;
+    const tbody = $('tablaPiezasBody');
+    tbody.innerHTML = '';
+
+    if(filtradas.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="p-5 text-center text-slate-500">No se encontraron piezas</td></tr>';
+        return;
+    }
+
+    filtradas.forEach(p => {
+        let estadoStr = `<span class="bg-emerald-100 text-emerald-800 px-2 py-1 rounded text-[10px] font-bold">OK</span>`;
+        if (Number(p.stockActual) === 0) estadoStr = `<span class="bg-red-100 text-red-800 px-2 py-1 rounded text-[10px] font-bold">SIN STOCK</span>`;
+        else if (Number(p.stockActual) <= Number(p.stockMin)) estadoStr = `<span class="bg-amber-100 text-amber-800 px-2 py-1 rounded text-[10px] font-bold">BAJO</span>`;
+
+        tbody.innerHTML += `
+            <tr class="hover:bg-slate-50">
+                <td class="p-2.5 font-mono font-bold text-orange-700">${p.codigoPieza}</td>
+                <td class="p-2.5 font-semibold">${p.nombre}</td>
+                <td class="p-2.5">${p.material}</td>
+                <td class="p-2.5">${p.ubicacion || '-'}</td>
+                <td class="p-2.5 text-center font-bold">${p.stockActual}</td>
+                <td class="p-2.5">${estadoStr}</td>
+                <td class="p-2.5 text-center flex justify-center gap-1">
+                    <button onclick="verQR('${p.id}')" class="bg-orange-100 hover:bg-orange-200 text-orange-800 px-2 py-1 rounded font-bold">🏷️ QR</button>
+                    <button onclick="editarPieza('${p.id}')" class="bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded font-bold">Editar</button>
+                    <button onclick="eliminarPieza('${p.id}')" class="bg-red-100 hover:bg-red-200 text-red-800 px-2 py-1 rounded font-bold">Borrar</button>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+function limpiarFiltros() {
+    $('filtroNombre').value = "";
+    $('filtroMaterial').value = "";
+    $('filtroCalibre').value = "";
+    $('filtroCategoria').value = "";
+    $('filtroEstadoStock').value = "";
+    aplicarFiltros();
+}
+
+function actualizarSelectPiezas() {
+    const selS = $('solicitudPieza');
+    const selM = $('movPieza');
+    const options = `<option value="">Seleccione una pieza...</option>` + 
+        piezas.map(p => `<option value="${p.id}">${p.codigoPieza} - ${p.nombre}</option>`).join('');
+    selS.innerHTML = options;
+    selM.innerHTML = options;
+
+    const mat = new Set(piezas.map(p=>p.material).filter(x=>x));
+    $('filtroMaterial').innerHTML = '<option value="">Todos los materiales</option>' + [...mat].map(m=>`<option value="${m}">${m}</option>`).join('');
+}
+
+// =========================================================
+// 5) SOLICITUDES
+// =========================================================
+async function guardarSolicitud(e) {
+    e.preventDefault();
+    const id = $('editSolicitudId').value;
+    const p = piezas.find(x => x.id === $('solicitudPieza').value);
+    
+    const data = {
+        piezaId: p.id,
+        piezaCodigo: p.codigoPieza,
+        piezaNombre: p.nombre,
+        cantidad: Number($('solicitudCantidad').value),
+        prioridad: $('solicitudPrioridad').value,
+        solicitante: $('solicitudSolicitante').value,
+        estado: $('solicitudEstado').value,
+        motivo: $('solicitudMotivo').value
+    };
+
+    try {
+        if(id) {
+            await db.collection('solicitudes').doc(id).update(data);
+            alert("Solicitud actualizada.");
+        } else {
+            data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            await db.collection('solicitudes').add(data);
+            alert("Solicitud registrada.");
+        }
+        cancelarEdicionSolicitud();
+    } catch(err) {
+        alert("Error: " + err.message);
+    }
+}
+
+function editarSolicitud(id) {
+    const s = solicitudes.find(x => x.id === id);
+    if(!s) return;
+    
+    $('editSolicitudId').value = s.id;
+    $('solicitudPieza').value = s.piezaId;
+    $('solicitudCantidad').value = s.cantidad;
+    $('solicitudPrioridad').value = s.prioridad;
+    $('solicitudSolicitante').value = s.solicitante;
+    $('solicitudEstado').value = s.estado;
+    $('solicitudMotivo').value = s.motivo || "";
+
+    $('tituloSolicitud').textContent = "Editar Solicitud";
+    $('estadoEdicionSolicitud').classList.remove('hidden');
+    $('btnCancelarEdicionSolicitud').classList.remove('hidden');$('btnGuardarSolicitud').textContent = "📝 Actualizar solicitud";
+}
+
+function cancelarEdicionSolicitud() {
+    $('formSolicitud').reset();$('editSolicitudId').value = "";
+    $('tituloSolicitud').textContent = "Solicitar más piezas";
+    $('estadoEdicionSolicitud').classList.add('hidden');
+    $('btnCancelarEdicionSolicitud').classList.add('hidden');$('btnGuardarSolicitud').textContent = "📝 Guardar solicitud";
+}
+
+function eliminarSolicitud(id) {
+    const pwd = prompt("ACCESO RESTRINGIDO\nIngrese la contraseña para eliminar la solicitud:");
+    if (pwd === ADMIN_PASSWORD) {
+        if(confirm("¿Seguro que desea borrar esta solicitud?")) {
+            db.collection('solicitudes').doc(id).delete()
+              .then(() => alert("Solicitud eliminada."))
+              .catch(err => alert("Error: " + err.message));
+        }
+    } else if (pwd !== null) {
+        alert("Contraseña incorrecta.");
+    }
+}
+
+function renderSolicitudes() {
+    const filtro = $('filtroSolicitudEstado').value;
+    const tbody = $('tablaSolicitudesBody');
+    tbody.innerHTML = '';
+    
+    const solFiltradas = filtro ? solicitudes.filter(s => s.estado === filtro) : solicitudes;
+    
+    if(solFiltradas.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="p-5 text-center text-slate-500">No hay solicitudes</td></tr>';
+        return;
+    }
+
+    solFiltradas.forEach(s => {
+        const fecha = s.createdAt && s.createdAt.toDate ? s.createdAt.toDate().toLocaleDateString() : 'Reciente';
+        tbody.innerHTML += `
+            <tr class="hover:bg-slate-50">
+                <td class="p-2.5">${fecha}</td>
+                <td class="p-2.5 font-bold">${s.piezaCodigo} <span class="text-slate-500 font-normal">(${s.piezaNombre})</span></td>
+                <td class="p-2.5">${s.cantidad}</td>
+                <td class="p-2.5">${s.prioridad}</td>
+                <td class="p-2.5">${s.solicitante}</td>
+                <td class="p-2.5 font-bold text-orange-600">${s.estado}</td>
+                <td class="p-2.5">
+                    <button onclick="editarSolicitud('${s.id}')" class="bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded font-bold mr-1">Editar</button>
+                    <button onclick="eliminarSolicitud('${s.id}')" class="bg-red-100 hover:bg-red-200 text-red-800 px-2 py-1 rounded font-bold">Borrar</button>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+// =========================================================
+// 6) MOVIMIENTOS Y ESCÁNER QR
+// =========================================================
+function abrirMovimiento() { $('modalMovimiento').classList.remove('hidden'); }
+function cerrarMovimiento() { $('modalMovimiento').classList.add('hidden'); }
+
+async function guardarMovimiento(e) {
+    e.preventDefault();
+    const pId = $('movPieza').value;
+    const tipo = $('movTipo').value;
+    const cantidad = Number($('movCantidad').value);
+    
+    const p = piezas.find(x => x.id === pId);
+    let nuevoStock = Number(p.stockActual);
+    
+    if (tipo === "ENTRADA") nuevoStock += cantidad;
+    else if (tipo === "SALIDA") nuevoStock -= cantidad;
+    else if (tipo === "AJUSTE") nuevoStock = cantidad;
+
+    if (nuevoStock < 0) return alert("El stock no puede ser negativo.");
+
+    try {
+        await db.collection('piezas').doc(pId).update({ stockActual: nuevoStock });
+        await db.collection('movimientos').add({
+            piezaId: p.id,
+            piezaCodigo: p.codigoPieza,
+            piezaNombre: p.nombre,
+            tipo: tipo,
+            cantidad: cantidad,
+            stockResultante: nuevoStock,
+            responsable: $('movResponsable').value,
+            motivo: $('movMotivo').value,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        alert("Movimiento guardado.");
+        $('modalMovimiento').classList.add('hidden');
+        e.target.reset();
+    } catch(err) {
+        alert("Error: " + err.message);
+    }
+}
+
+function renderMovimientos() {
+    const tbody = $('tablaMovimientosBody');
+    tbody.innerHTML = '';
+    if(movimientos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="p-5 text-center text-slate-500">No hay movimientos</td></tr>';
+        return;
+    }
+    movimientos.forEach(m => {
+        const fecha = m.createdAt && m.createdAt.toDate ? m.createdAt.toDate().toLocaleString() : 'Reciente';
+        tbody.innerHTML += `
+            <tr class="hover:bg-slate-50">
+                <td class="p-2.5">${fecha}</td>
+                <td class="p-2.5 font-bold">${m.piezaCodigo}</td>
+                <td class="p-2.5 font-bold ${m.tipo==='ENTRADA'?'text-green-600':m.tipo==='SALIDA'?'text-red-600':'text-blue-600'}">${m.tipo}</td>
+                <td class="p-2.5">${m.cantidad}</td>
+                <td class="p-2.5">${m.stockResultante}</td>
+                <td class="p-2.5">${m.responsable}</td>
+                <td class="p-2.5">${m.motivo}</td>
+            </tr>
+        `;
+    });
+}
+
+function abrirEscaner() {
+    $('modalEscaner').classList.remove('hidden');
+    if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode("reader");
+    }
+    html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => {
+            $('filtroNombre').value = decodedText;
+            aplicarFiltros();
+            cerrarEscaner();
+            mostrarSeccion('inventario');
+        },
+        (errorMessage) => { }
+    ).catch(err => {
+        console.error("Error iniciando cámara", err);
+        alert("Error al acceder a la cámara.");
+    });
+}
+
+function cerrarEscaner() {
+    if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().then(() => {
+            $('modalEscaner').classList.add('hidden');
+        }).catch(err => {
+            console.error("Error deteniendo cámara", err);
+            $('modalEscaner').classList.add('hidden');
+        });
+    } else {
+        $('modalEscaner').classList.add('hidden');
+    }
+}
+
+// =========================================================
+// EXPORTAR INVENTARIO A PDF
+// =========================================================
+function descargarPDFInventario() {
+    // 1. Inicializar jsPDF
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // 2. Configurar el encabezado del documento
+    doc.setFontSize(14);
+    doc.setTextColor(234, 88, 12); // Naranja VOLMEX
+    doc.text("VOLMEX - Reporte de Inventario", 14, 15);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    
+    // Identificar si hay algún filtro de material activo
+    const filtroMat = document.getElementById("filtroMaterial").value;
+    const textoFiltro = filtroMat ? `Material: ${filtroMat}` : 'Todos los materiales';
+    doc.text(`Filtros: ${textoFiltro} | Fecha: ${new Date().toLocaleDateString()}`, 14, 22);
+
+    // 3. Extraer solo las filas que actualmente se están mostrando en la tabla
+    const tableBody = document.getElementById("tablaPiezasBody");
+    const rows = Array.from(tableBody.querySelectorAll("tr")).filter(tr => {
+        // Omitir la fila de "Cargando..."
+        if (tr.innerText.includes("Cargando...")) return false;
+        // Omitir filas que tu función de filtrado haya ocultado mediante CSS
+        if (tr.style.display === "none") return false;
+        return true;
+    });
+
+    // 4. Mapear las celdas a un arreglo de datos
+    const bodyData = rows.map(tr => {
+        const tds = tr.querySelectorAll("td");
+        if (tds.length >= 6) {
+            return [
+                tds[0].innerText.trim(), // Código
+                tds[1].innerText.trim(), // Nombre
+                tds[2].innerText.trim(), // Material
+                tds[3].innerText.trim(), // Ubicación
+                tds[4].innerText.trim(), // Stock
+                tds[5].innerText.trim()  // Estado
+            ];
+        }
+        return null;
+    }).filter(Boolean); // Remover nulos
+
+    // 5. Validar que haya datos antes de generar el PDF
+    if (bodyData.length === 0) {
+        alert("No hay piezas en la tabla para exportar.");
+        return;
+    }
+
+    // 6. Generar la tabla con autoTable
+    doc.autoTable({
+        startY: 28,
+        head: [['Código', 'Nombre', 'Material', 'Ubicación', 'Stock', 'Estado']],
+        body: bodyData,
+        theme: 'striped',
+        headStyles: { fillColor: [234, 88, 12] }, // Cabecera Naranja
+        styles: { fontSize: 8, cellPadding: 2 }
+    });
+
+    // 7. Descargar el archivo
+    doc.save(`Inventario_Volmex_${Date.now()}.pdf`);
+}
+</script>
+</body>
+</html>
