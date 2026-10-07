@@ -49,9 +49,9 @@
         <span id="estadoConexion" class="text-xs font-semibold bg-amber-100 text-amber-700 px-2 py-1 rounded-full">Validando sesión...</span>
 
         <div class="flex flex-wrap gap-2 items-center">
-            <button onclick="mostrarSeccion('inventario')" class="bg-white/15 hover:bg-white/25 px-3 py-2 rounded-lg text-sm font-semibold">📦 Inventario</button>
-            <button onclick="mostrarSeccion('solicitudes')" class="bg-white/15 hover:bg-white/25 px-3 py-2 rounded-lg text-sm font-semibold">📝 Solicitudes</button>
-            <button onclick="mostrarSeccion('movimientos')" class="bg-white/15 hover:bg-white/25 px-3 py-2 rounded-lg text-sm font-semibold">🔄 Movimientos</button>
+            <button onclick="mostrarSeccion('seccionInventario')" class="bg-white/15 hover:bg-white/25 px-3 py-2 rounded-lg text-sm font-semibold">📦 Inventario</button>
+            <button onclick="mostrarSeccion('seccionSolicitudes')" class="bg-white/15 hover:bg-white/25 px-3 py-2 rounded-lg text-sm font-semibold">📝 Solicitudes</button>
+            <button onclick="mostrarSeccion('seccionMovimientos')" class="bg-white/15 hover:bg-white/25 px-3 py-2 rounded-lg text-sm font-semibold">🔄 Movimientos</button>
             <button onclick="abrirEscaner()" class="bg-white text-orange-700 hover:bg-orange-50 px-3 py-2 rounded-lg text-sm font-bold shadow">📷 Escanear</button>
             <button onclick="cerrarSesion()" class="bg-red-700 hover:bg-red-800 text-white px-3 py-2 rounded-lg text-sm font-bold shadow ml-2">Salir</button>
         </div>
@@ -530,41 +530,52 @@ async function registrar() {
 // =========================================================
 
 function mostrarSeccion(idDestino) {
-    // 1. Pon aquí los IDs exactos de los <div> de tus pantallas en el HTML
-    // (Ajusta estos nombres si en tu HTML se llaman diferente)
+    // IDs reales de las secciones visibles del sistema.
+    // También aceptamos los nombres cortos por compatibilidad.
+    const equivalencias = {
+        inventario: 'seccionInventario',
+        solicitudes: 'seccionSolicitudes',
+        movimientos: 'seccionMovimientos'
+    };
+
+    const idReal = equivalencias[idDestino] || idDestino;
+
     const pantallas = [
-        'seccionInventario', 
-        'seccionSolicitudes', 
-        'seccionMovimientos', 
-        'seccionEscanear',
-        'seccionLogin'
-    ]; 
-    
-    // 2. Ocultamos todas las pantallas agregando la clase 'hidden' de Tailwind
+        'seccionInventario',
+        'seccionSolicitudes',
+        'seccionMovimientos'
+    ];
+
+    // Ocultar todas las secciones.
     pantallas.forEach(id => {
         const elemento = document.getElementById(id);
-        if (elemento) {
-            elemento.classList.add('hidden');
-        }
+        if (elemento) elemento.classList.add('hidden');
     });
 
-    // 3. Mostramos únicamente la pantalla a la que queremos ir
-    const pantallaDestino = document.getElementById(idDestino);
-    if (pantallaDestino) {
-        pantallaDestino.classList.remove('hidden');
-    } else {
-        console.error("Error: No se encontró en el HTML la pantalla con el ID:", idDestino);
+    // Mostrar la sección solicitada.
+    const pantallaDestino = document.getElementById(idReal);
+    if (!pantallaDestino) {
+        console.error('No se encontró la sección:', idReal);
+        return;
     }
+
+    pantallaDestino.classList.remove('hidden');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function cerrarSesion() {
-    // auth es la variable de Firebase que maneja la sesión
-    auth.signOut().then(() => {
-        // Al cerrar sesión, recargamos la página para volver al inicio limpios
+async function cerrarSesion() {
+    try {
+        if (!auth) {
+            alert('Firebase todavía no está listo. Intenta nuevamente.');
+            return;
+        }
+
+        await auth.signOut();
         window.location.reload();
-    }).catch((error) => {
-        alert("Error al cerrar sesión: " + error.message);
-    });
+    } catch (error) {
+        console.error('Error al cerrar sesión:', error);
+        alert('Error al cerrar sesión: ' + (error.message || error));
+    }
 }
 
 // =========================================================
@@ -580,6 +591,12 @@ function escucharPiezas() {
         poblarSelectFiltros(); 
         aplicarFiltros(); // Esto ahora llama a la función unificada y correcta
         actualizarCodigoVistaPrevia();
+    }, error => {
+        console.error('Error leyendo piezas:', error);
+        const tbody = $('tablaPiezasBody');
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="7" class="p-5 text-center text-red-600">Error al cargar inventario: ${error.message || 'Error desconocido'}</td></tr>`;
+        }
     });
 }
 function escucharSolicitudes() {
@@ -588,6 +605,10 @@ function escucharSolicitudes() {
         solicitudes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         $('statSolicitudes').textContent = solicitudes.filter(s => s.estado === 'Pendiente').length;
         renderSolicitudes();
+    }, error => {
+        console.error('Error leyendo solicitudes:', error);
+        $('tablaSolicitudesBody').innerHTML =
+            `<tr><td colspan="7" class="p-5 text-center text-red-600">Error al cargar solicitudes: ${error.message || 'Error desconocido'}</td></tr>`;
     });
 }
 function escucharMovimientos() {
@@ -595,6 +616,10 @@ function escucharMovimientos() {
     unsubscribeMovimientos = db.collection('movimientos').orderBy('createdAt', 'desc').limit(100).onSnapshot(snapshot => {
         movimientos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderMovimientos();
+    }, error => {
+        console.error('Error leyendo movimientos:', error);
+        $('tablaMovimientosBody').innerHTML =
+            `<tr><td colspan="7" class="p-5 text-center text-red-600">Error al cargar movimientos: ${error.message || 'Error desconocido'}</td></tr>`;
     });
 }
 
@@ -1051,27 +1076,94 @@ function renderMovimientos() {
     });
 }
 
-function abrirEscaner() {
-    $('modalEscaner').classList.remove('hidden');
-    if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
-    html5QrCode.start(
-        { facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } },
-        (decodedText) => {
-            $('filtroNombre').value = decodedText;
-            aplicarFiltros();
-            cerrarEscaner();
-            mostrarSeccion('inventario');
-        },
-        (err) => { }
-    ).catch(err => {
-        alert("Error al acceder a la cámara.");
-    });
+async function abrirEscaner() {
+    const modal = $('modalEscaner');
+    const reader = $('reader');
+
+    if (!modal || !reader) {
+        alert('No se encontró el módulo del escáner en la página.');
+        return;
+    }
+
+    if (typeof Html5Qrcode === 'undefined') {
+        alert('No se pudo cargar la librería del escáner QR. Revisa tu conexión a internet y vuelve a cargar la página.');
+        return;
+    }
+
+    modal.classList.remove('hidden');
+
+    try {
+        if (!html5QrCode) {
+            html5QrCode = new Html5Qrcode('reader');
+        }
+
+        // Evitar intentar iniciar una cámara que ya está activa.
+        if (html5QrCode.isScanning) return;
+
+        reader.innerHTML = 'Iniciando cámara...';
+
+        await html5QrCode.start(
+            { facingMode: 'environment' },
+            {
+                fps: 10,
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0
+            },
+            (decodedText) => {
+                const codigo = String(decodedText || '').trim().toUpperCase();
+
+                // El QR contiene el código de la pieza.
+                $('filtroNombre').value = codigo;
+                aplicarFiltros();
+
+                const piezaEncontrada = piezas.find(p =>
+                    String(p.codigoPieza || '').trim().toUpperCase() === codigo
+                );
+
+                cerrarEscaner();
+                mostrarSeccion('seccionInventario');
+
+                if (!piezaEncontrada) {
+                    alert(
+                        'Código leído: ' + codigo +
+                        '\nNo se encontró una pieza con ese código en el inventario.'
+                    );
+                }
+            },
+            () => { }
+        );
+    } catch (err) {
+        console.error('Error del escáner:', err);
+
+        let mensaje = 'No se pudo iniciar la cámara.';
+        if (location.protocol === 'file:') {
+            mensaje += ' Abre el archivo mediante un servidor local (por ejemplo, localhost) o desde HTTPS.';
+        } else {
+            mensaje += ' Verifica que el navegador tenga permiso para usar la cámara.';
+        }
+
+        alert(mensaje);
+
+        try {
+            if (html5QrCode && html5QrCode.isScanning) {
+                await html5QrCode.stop();
+            }
+        } catch (_) {}
+
+        modal.classList.add('hidden');
+    }
 }
 
-function cerrarEscaner() {
-    if (html5QrCode && html5QrCode.isScanning) {
-        html5QrCode.stop().then(() => $('modalEscaner').classList.add('hidden'));
-    } else $('modalEscaner').classList.add('hidden');
+async function cerrarEscaner() {
+    try {
+        if (html5QrCode && html5QrCode.isScanning) {
+            await html5QrCode.stop();
+        }
+    } catch (err) {
+        console.error('Error al detener el escáner:', err);
+    } finally {
+        $('modalEscaner').classList.add('hidden');
+    }
 }
 
 // =========================================================
