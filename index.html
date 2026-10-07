@@ -526,6 +526,48 @@ async function registrar() {
 }
 
 // =========================================================
+// NAVEGACIÓN Y CIERRE DE SESIÓN
+// =========================================================
+
+function mostrarSeccion(idDestino) {
+    // 1. Pon aquí los IDs exactos de los <div> de tus pantallas en el HTML
+    // (Ajusta estos nombres si en tu HTML se llaman diferente)
+    const pantallas = [
+        'seccionInventario', 
+        'seccionSolicitudes', 
+        'seccionMovimientos', 
+        'seccionEscanear',
+        'seccionLogin'
+    ]; 
+    
+    // 2. Ocultamos todas las pantallas agregando la clase 'hidden' de Tailwind
+    pantallas.forEach(id => {
+        const elemento = document.getElementById(id);
+        if (elemento) {
+            elemento.classList.add('hidden');
+        }
+    });
+
+    // 3. Mostramos únicamente la pantalla a la que queremos ir
+    const pantallaDestino = document.getElementById(idDestino);
+    if (pantallaDestino) {
+        pantallaDestino.classList.remove('hidden');
+    } else {
+        console.error("Error: No se encontró en el HTML la pantalla con el ID:", idDestino);
+    }
+}
+
+function cerrarSesion() {
+    // auth es la variable de Firebase que maneja la sesión
+    auth.signOut().then(() => {
+        // Al cerrar sesión, recargamos la página para volver al inicio limpios
+        window.location.reload();
+    }).catch((error) => {
+        alert("Error al cerrar sesión: " + error.message);
+    });
+}
+
+// =========================================================
 // 2) LISTENERS EN TIEMPO REAL
 // =========================================================
 function escucharPiezas() {
