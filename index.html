@@ -539,13 +539,13 @@ function actualizarCodigoVistaPrevia() {
     
     const cat = $('categoria').value;
     const proc = $('proceso').value;
-    const sufijo = `s${cat}${proc}`.toLowerCase(); // ej. svd
+    const sufijo = `S${cat}${proc}`.toUpperCase(); // Sufijo en mayúsculas (ej. SVD)
     
     // Buscar el número consecutivo más alto para ese sufijo
     const numeros = piezas
-        .filter(p => p.codigoPieza && p.codigoPieza.toLowerCase().endsWith(`-${sufijo}`))
+        .filter(p => p.codigoPieza && p.codigoPieza.toUpperCase().endsWith(`-${sufijo}`))
         .map(p => {
-            const partes = p.codigoPieza.split('-'); // p - 001 - svd
+            const partes = p.codigoPieza.split('-'); // P - 001 - SVD
             if(partes.length >= 2 && !isNaN(partes[1])) {
                 return Number(partes[1]);
             }
@@ -555,8 +555,8 @@ function actualizarCodigoVistaPrevia() {
         
     const siguiente = numeros.length ? Math.max(...numeros) + 1 : 1;
     
-    // Rellenamos el input editable en lugar del div fijo
-    $('codigoPiezaManual').value = `p-${String(siguiente).padStart(3, '0')}-${sufijo}`;
+    // Asigna el formato en mayúsculas: P-001-SVD
+    $('codigoPiezaManual').value = `P-${String(siguiente).padStart(3, '0')}-${sufijo}`;
 }
 
 async function guardarPieza(e) {
@@ -567,7 +567,7 @@ async function guardarPieza(e) {
 
     try {
         // Tomamos el código directamente de lo que escribió o aceptó el usuario
-        let codigo = $('codigoPiezaManual').value.trim().toLowerCase();
+        let codigo = $('codigoPiezaManual').value.trim().toUpperCase();
 
         // Si es una pieza nueva, avisamos si el código ya lo está usando otra
         if (!id && piezas.some(p => p.codigoPieza.toLowerCase() === codigo)) {
