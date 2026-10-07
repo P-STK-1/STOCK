@@ -799,7 +799,6 @@ async function guardarSolicitud(e) {
     const nuevoEstado = $('solicitudEstado').value;
     const cantidad = Number($('solicitudCantidad').value);
 
-    // Identificar el estado que tenía antes la solicitud (si es una edición)
     const solicitudPrevia = solicitudes.find(x => x.id === id);
     const estadoAnterior = solicitudPrevia ? solicitudPrevia.estado : '';
 
@@ -815,23 +814,19 @@ async function guardarSolicitud(e) {
     };
 
     try {
-        // Solo descuenta stock cuando cambia el estado a 'Completada' por primera vez
         if (nuevoEstado === 'Completada' && estadoAnterior !== 'Completada') {
             const stockActual = Number(p.stockActual) || 0;
             const nuevoStock = stockActual - cantidad;
 
-            // Validación si el stock queda en negativo
             if (nuevoStock < 0) {
                 const confirmar = confirm(`El stock actual (${stockActual}) es menor que la cantidad solicitada (${cantidad}). ¿Deseas completarla de todos modos?`);
                 if (!confirmar) return;
             }
 
-            // 1. Descontar el stock actual en la pieza
             await db.collection('piezas').doc(p.id).update({
                 stockActual: nuevoStock
             });
 
-            // 2. Registrar el movimiento de SALIDA automáticamente en el historial
             await db.collection('movimientos').add({
                 piezaId: p.id,
                 piezaCodigo: p.codigoPieza,
@@ -858,6 +853,74 @@ async function guardarSolicitud(e) {
         console.error(err);
         alert("Error al guardar la solicitud: " + err.message);
     }
+}
+
+function cancelarEdicionSolicitud() {
+    $('formSolicitud').reset();$('editSolicitudId').value = "";
+    $('tituloSolicitud').textContent = "Solicitar más piezas";
+    $('estadoEdicionSolicitud').classList.add('hidden');
+    $('btnCancelarEdicionSolicitud').classList.add('hidden');$('btnGuardarSolicitud').textContent = "📝 Guardar solicitud";
+}
+
+function editarSolicitud(id) {
+    const s = solicitudes.find(x => x.id === id);
+    if(!s) return;
+    
+    $('editSolicitudId').value = s.id;
+    $('solicitudPieza').value = s.piezaId;
+    $('solicitudCantidad').value = s.cantidad;
+    $('solicitudPrioridad').value = s.prioridad;
+    $('solicitudSolicitante').value = s.solicitante;
+    $('solicitudEstado').value = s.estado;
+    $('solicitudMotivo').value = s.motivo || "";
+
+    $('tituloSolicitud').textContent = "Editar Solicitud";
+    $('estadoEdicionSolicitud').classList.remove('hidden');
+    $('btnCancelarEdicionSolicitud').classList.remove('hidden');$('btnGuardarSolicitud').textContent = "📝 Actualizar solicitud";
+}
+
+function eliminarSolicitud(id) {
+    const pwd = prompt("ACCESO RESTRINGIDO\nIngrese la contraseña para eliminar la solicitud:");
+    if (pwd === ADMIN_PASSWORD) {
+        if(confirm("¿Seguro que desea borrar esta solicitud?")) {
+            db.collection('solicitudes').doc(id).delete()
+              .then(() => alert("Solicitud eliminada."))
+              .catch(err => alert("Error: " + err.message));
+        }
+    } else if (pwd !== null) {
+        alert("Contraseña incorrecta.");
+    }
+}
+
+function renderSolicitudes() {
+    const filtro = $('filtroSolicitudEstado').value;
+    const tbody = $('tablaSolicitudesBody');
+    tbody.innerHTML = '';
+    
+    const solFiltradas = filtro ? solicitudes.filter(s => s.estado === filtro) : solicitudes;
+    
+    if(solFiltradas.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="p-5 text-center text-slate-500">No hay solicitudes</td></tr>';
+        return;
+    }
+
+    solFiltradas.forEach(s => {
+        const fecha = s.createdAt && s.createdAt.toDate ? s.createdAt.toDate().toLocaleDateString() : 'Reciente';
+        tbody.innerHTML += `
+            <tr class="hover:bg-slate-50">
+                <td class="p-2.5">${fecha}</td>
+                <td class="p-2.5 font-bold">${s.piezaCodigo} <span class="text-slate-500 font-normal">(${s.piezaNombre})</span></td>
+                <td class="p-2.5">${s.cantidad}</td>
+                <td class="p-2.5">${s.prioridad}</td>
+                <td class="p-2.5">${s.solicitante}</td>
+                <td class="p-2.5 font-bold text-orange-600">${s.estado}</td>
+                <td class="p-2.5">
+                    <button onclick="editarSolicitud('${s.id}')" class="bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded font-bold mr-1">Editar</button>
+                    <button onclick="eliminarSolicitud('${s.id}')" class="bg-red-100 hover:bg-red-200 text-red-800 px-2 py-1 rounded font-bold">Borrar</button>
+                </td>
+            </tr>
+        `;
+    });
 }
 
 // =========================================================
