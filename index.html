@@ -24,6 +24,21 @@
 
 <body class="bg-slate-100 min-h-screen text-slate-800">
 
+<!-- PANTALLA DE LOGIN -->
+<div id="pantallaLogin" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center">
+    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-sm">
+        <h2 class="text-3xl font-black text-center text-orange-600 mb-1">VOLMEX</h2>
+        <p class="text-center text-sm text-slate-500 mb-6">Inicia sesión para acceder al sistema</p>
+        <div class="space-y-4">
+            <input type="email" id="loginEmail" placeholder="Correo electrónico" class="w-full border rounded-lg p-3">
+            <input type="password" id="loginPassword" placeholder="Contraseña" class="w-full border rounded-lg p-3">
+            <button onclick="login()" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-lg shadow-md">Iniciar Sesión</button>
+            <button onclick="registrar()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 rounded-lg text-sm">Registrar cuenta nueva</button>
+        </div>
+        <p id="loginError" class="text-red-600 font-semibold text-xs text-center mt-4 hidden"></p>
+    </div>
+</div>
+
 <header class="bg-orange-600 text-white shadow-lg sticky top-0 z-40">
     <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
@@ -31,13 +46,14 @@
             <p class="text-xs text-orange-100">Estandarización, control y trazabilidad de piezas en stock</p>
         </div>
 
-        <span id="estadoConexion" class="text-xs font-semibold bg-amber-100 text-amber-700 px-2 py-1 rounded-full">Conectando con Firebase...</span>
+        <span id="estadoConexion" class="text-xs font-semibold bg-amber-100 text-amber-700 px-2 py-1 rounded-full">Validando sesión...</span>
 
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap gap-2 items-center">
             <button onclick="mostrarSeccion('inventario')" class="bg-white/15 hover:bg-white/25 px-3 py-2 rounded-lg text-sm font-semibold">📦 Inventario</button>
             <button onclick="mostrarSeccion('solicitudes')" class="bg-white/15 hover:bg-white/25 px-3 py-2 rounded-lg text-sm font-semibold">📝 Solicitudes</button>
             <button onclick="mostrarSeccion('movimientos')" class="bg-white/15 hover:bg-white/25 px-3 py-2 rounded-lg text-sm font-semibold">🔄 Movimientos</button>
             <button onclick="abrirEscaner()" class="bg-white text-orange-700 hover:bg-orange-50 px-3 py-2 rounded-lg text-sm font-bold shadow">📷 Escanear</button>
+            <button onclick="cerrarSesion()" class="bg-red-700 hover:bg-red-800 text-white px-3 py-2 rounded-lg text-sm font-bold shadow ml-2">Salir</button>
         </div>
     </div>
 </header>
@@ -102,10 +118,11 @@
                         </div>
                     </div>
 
+                    <!-- NUEVO CAMPO DE CÓDIGO EDITABLE -->
                     <div class="bg-orange-50 border border-orange-200 rounded-lg p-3">
-                        <div class="text-xs font-semibold text-orange-700">Código estandarizado</div>
-                        <div id="codigoGeneradoVista" class="font-mono text-lg font-extrabold text-orange-900 mt-1">SVD-P-001</div>
-                        <div class="text-[11px] text-orange-700 mt-1">El consecutivo lo administra Firebase para evitar duplicados.</div>
+                        <label class="block text-xs font-bold text-orange-800 mb-1">Código de pieza (Editable para elegir #)</label>
+                        <input type="text" id="codigoPiezaManual" class="w-full bg-white font-mono text-lg font-extrabold text-orange-900 border border-orange-300 rounded p-2" required>
+                        <div class="text-[10px] text-orange-700 mt-1 leading-tight">El sistema sugiere el siguiente número, pero puedes modificarlo manualmente para recuperar un número borrado.</div>
                     </div>
 
                     <div>
@@ -211,7 +228,6 @@
                 <div class="flex items-center justify-between mb-3">
         <div id="textoResultados" class="text-xs text-slate-500">0 resultados</div>
         
-        <!-- Nuevo contenedor con el botón de PDF y limpiar filtros -->
         <div class="flex items-center gap-3">
             <button onclick="descargarPDFInventario()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm flex items-center gap-1">
                 📄 Descargar PDF
@@ -322,7 +338,7 @@
             <!-- Contenedor imprimible -->
             <div id="etiquetaImprimir" class="bg-white p-4 border-2 border-slate-900 rounded-xl shadow-inner space-y-3">
                 <div class="text-xs font-black tracking-widest text-orange-600 uppercase border-b border-slate-200 pb-1">VOLMEX - CONTROL DE STOCK</div>
-                <div id="qrCodigoPieza" class="text-xl font-black font-mono text-slate-900">SVD-P-001</div>
+                <div id="qrCodigoPieza" class="text-xl font-black font-mono text-slate-900">p-001-svd</div>
                 <div id="qrTituloPieza" class="text-sm font-bold text-slate-800 line-clamp-2">MENSULA IZQUIERDA</div>
                 
                 <!-- QR renderizado aquí -->
@@ -383,13 +399,13 @@
 // 1) CONFIGURACIÓN FIREBASE Y VARIABLES
 // =========================================================
 const firebaseConfig = {
-    apiKey: "AIzaSyAVKF5Q0tWa1Yhh2Kk67-MIAbPlG13hlls",
-    authDomain: "p-stk-de67f.firebaseapp.com",
-    projectId: "p-stk-de67f",
-    storageBucket: "p-stk-de67f.firebasestorage.app",
-    messagingSenderId: "1073057092379",
-    appId: "1:1073057092379:web:3d877090d422fb021939be",
-    measurementId: "G-TYN037MFWB"
+    apiKey: "AIzaSyBVI0BM3eWDI9wxrIpz2vEiODkuB6qeIFI",
+    authDomain: "stock-85328.firebaseapp.com",
+    projectId: "stock-85328",
+    storageBucket: "stock-85328.firebasestorage.app",
+    messagingSenderId: "607214950492",
+    appId: "1:607214950492:web:83a4b352fc21804aca2e99",
+    measurementId: "G-DDWQSJQ5Q2"
 };
 
 const ADMIN_PASSWORD = "admin123";
@@ -407,14 +423,29 @@ async function inicializarFirebase() {
         
         db = firebase.firestore();
         auth = firebase.auth();
-        await auth.signInAnonymously();
 
-        $('estadoConexion').textContent = "Firebase conectado";
-        $('estadoConexion').className = "text-xs font-semibold bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full";
-
-        escucharPiezas();
-        escucharSolicitudes();
-        escucharMovimientos();
+        // Control de sesión
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                // Usuario autenticado, ocultar login y cargar info
+                $('pantallaLogin').classList.add('hidden');
+                $('estadoConexion').textContent = "Usuario conectado";
+                $('estadoConexion').className = "text-xs font-semibold bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full";
+                escucharPiezas();
+                escucharSolicitudes();
+                escucharMovimientos();
+            } else {
+                // No hay usuario, mostrar login
+                $('pantallaLogin').classList.remove('hidden');
+                $('estadoConexion').textContent = "Desconectado";
+                $('estadoConexion').className = "text-xs font-semibold bg-red-100 text-red-700 px-2 py-1 rounded-full";
+                
+                // Detener escuchas si se cierra sesión
+                if (unsubscribePiezas) unsubscribePiezas();
+                if (unsubscribeSolicitudes) unsubscribeSolicitudes();
+                if (unsubscribeMovimientos) unsubscribeMovimientos();
+            }
+        });
     } catch (err) {
         console.error(err);
         $('estadoConexion').textContent = "Error de Firebase";
@@ -423,6 +454,38 @@ async function inicializarFirebase() {
     }
 }
 window.addEventListener("DOMContentLoaded", inicializarFirebase);
+
+// =========================================================
+// 1.5) AUTENTICACIÓN: LOGIN Y REGISTRO
+// =========================================================
+async function login() {
+    const email = $('loginEmail').value;
+    const pwd = $('loginPassword').value;
+    try {
+        await auth.signInWithEmailAndPassword(email, pwd);
+        $('loginError').classList.add('hidden');
+    } catch (err) {
+        $('loginError').textContent = "Credenciales incorrectas.";
+        $('loginError').classList.remove('hidden');
+    }
+}
+
+async function registrar() {
+    const email = $('loginEmail').value;
+    const pwd = $('loginPassword').value;
+    try {
+        await auth.createUserWithEmailAndPassword(email, pwd);
+        $('loginError').classList.add('hidden');
+        alert("Cuenta creada con éxito.");
+    } catch (err) {
+        $('loginError').textContent = "Error al registrar: " + err.message;
+        $('loginError').classList.remove('hidden');
+    }
+}
+
+function cerrarSesion() {
+    auth.signOut();
+}
 
 function mostrarSeccion(seccion) {
     $('seccionInventario').classList.toggle('hidden', seccion !== 'inventario');
@@ -460,7 +523,7 @@ function escucharMovimientos() {
 }
 
 // =========================================================
-// 3) INVENTARIO Y CÓDIGOS
+// 3) INVENTARIO Y CÓDIGOS (FORMATO Y MANUAL)
 // =========================================================
 function actualizarEstadisticas() {
     $('statPiezas').textContent = piezas.length;
@@ -469,34 +532,30 @@ function actualizarEstadisticas() {
     $('statSinStock').textContent = piezas.filter(p => Number(p.stockActual) === 0).length;
 }
 
+// Nuevo sistema de códigos: Sugiere p-001-sufijo pero deja que el usuario lo edite
 function actualizarCodigoVistaPrevia() {
     if ($('editDocId').value) return; 
-    const prefijo = `S${$('categoria').value}${$('proceso').value}`;
+    
+    const cat = $('categoria').value;
+    const proc = $('proceso').value;
+    const sufijo = `s${cat}${proc}`.toLowerCase(); // ej. svd
+    
+    // Buscar el número consecutivo más alto para ese sufijo
     const numeros = piezas
-        .filter(p => String(p.codigoPieza || '').startsWith(prefijo + '-P-'))
-        .map(p => Number(String(p.codigoPieza).split('-P-')[1]))
+        .filter(p => p.codigoPieza && p.codigoPieza.toLowerCase().endsWith(`-${sufijo}`))
+        .map(p => {
+            const partes = p.codigoPieza.split('-'); // p - 001 - svd
+            if(partes.length >= 2 && !isNaN(partes[1])) {
+                return Number(partes[1]);
+            }
+            return 0;
+        })
         .filter(Number.isFinite);
+        
     const siguiente = numeros.length ? Math.max(...numeros) + 1 : 1;
-    $('codigoGeneradoVista').textContent = `${prefijo}-P-${String(siguiente).padStart(3, '0')}`;
-}
-
-async function obtenerSiguienteCodigo(categoria, proceso) {
-    const prefijo = `S${categoria}${proceso}`;
-    const numerosLocales = piezas
-        .filter(p => String(p.codigoPieza || '').startsWith(prefijo + '-P-'))
-        .map(p => Number(String(p.codigoPieza).split('-P-')[1]))
-        .filter(Number.isFinite);
-    const minimoInicial = numerosLocales.length ? Math.max(...numerosLocales) : 0;
-    const refContador = db.collection('contadores').doc(prefijo);
-
-    const siguiente = await db.runTransaction(async transaction => {
-        const snap = await transaction.get(refContador);
-        const ultimo = snap.exists ? Number(snap.data().ultimo) || 0 : 0;
-        const numero = Math.max(ultimo, minimoInicial) + 1;
-        transaction.set(refContador, { ultimo: numero, prefijo }, { merge: true });
-        return numero;
-    });
-    return `${prefijo}-P-${String(siguiente).padStart(3, '0')}`;
+    
+    // Rellenamos el input editable en lugar del div fijo
+    $('codigoPiezaManual').value = `p-${String(siguiente).padStart(3, '0')}-${sufijo}`;
 }
 
 async function guardarPieza(e) {
@@ -506,11 +565,19 @@ async function guardarPieza(e) {
     btn.disabled = true; btn.textContent = "Guardando...";
 
     try {
-        let codigo = $('codigoGeneradoVista').textContent;
-        if (!id) codigo = await obtenerSiguienteCodigo($('categoria').value, $('proceso').value);
+        // Tomamos el código directamente de lo que escribió o aceptó el usuario
+        let codigo = $('codigoPiezaManual').value.trim().toLowerCase();
+
+        // Si es una pieza nueva, avisamos si el código ya lo está usando otra
+        if (!id && piezas.some(p => p.codigoPieza.toLowerCase() === codigo)) {
+            if(!confirm(`El código "${codigo}" ya existe. ¿Deseas usarlo de todos modos?`)) {
+                btn.disabled = false; btn.textContent = "💾 Guardar pieza";
+                return;
+            }
+        }
 
         const data = {
-            codigoPieza: id ? (piezas.find(p=>p.id===id).codigoPieza || codigo) : codigo,
+            codigoPieza: codigo, // Se asigna el código elegido por el usuario
             categoria: $('categoria').value,
             proceso: $('proceso').value,
             nombre: $('nombre').value,
@@ -550,7 +617,7 @@ function editarPieza(id) {
     $('editDocId').value = p.id;
     $('categoria').value = p.categoria || "X";
     $('proceso').value = p.proceso || "M";
-    $('codigoGeneradoVista').textContent = p.codigoPieza;
+    $('codigoPiezaManual').value = p.codigoPieza; // Se carga el código al input
     $('nombre').value = p.nombre;
     $('material').value = p.material || "";
     $('calibre').value = p.calibre || "";
@@ -583,7 +650,7 @@ function eliminarPieza(id) {
     if (pwd === ADMIN_PASSWORD) {
         if(confirm("¿Está seguro de eliminar esta pieza permanentemente? Esto no afectará el historial de movimientos.")) {
             db.collection('piezas').doc(id).delete()
-              .then(() => alert("Pieza eliminada correctamente."))
+              .then(() => alert("Pieza eliminada correctamente. Su número de código ahora está libre para volver a utilizarse."))
               .catch(err => alert("Error al eliminar: " + err.message));
         }
     } else if (pwd !== null) {
@@ -602,11 +669,9 @@ function verQR(id) {
     $('qrTituloPieza').textContent = p.nombre;
     $('qrDetallePieza').textContent = `Material: ${p.material || 'N/A'} | Ubicación: ${p.ubicacion || 'Sin asignar'}`;
 
-    // Limpiar contenedor anterior de QR
     const container = $('qrcodeContainer');
     container.innerHTML = '';
 
-    // Generar nuevo código QR
     new QRCode(container, {
         text: p.codigoPieza,
         width: 150,
@@ -616,7 +681,6 @@ function verQR(id) {
         correctLevel : QRCode.CorrectLevel.H
     });
 
-    // Generar código de barras
     try {
         JsBarcode("#barcodeCanvas", p.codigoPieza, {
             format: "CODE128",
@@ -926,11 +990,9 @@ function cerrarEscaner() {
 // EXPORTAR INVENTARIO A PDF
 // =========================================================
 function descargarPDFInventario() {
-    // 1. Inicializar jsPDF
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    // 2. Configurar el encabezado del documento
     doc.setFontSize(14);
     doc.setTextColor(234, 88, 12); // Naranja VOLMEX
     doc.text("VOLMEX - Reporte de Inventario", 14, 15);
@@ -938,54 +1000,46 @@ function descargarPDFInventario() {
     doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
     
-    // Identificar si hay algún filtro de material activo
     const filtroMat = document.getElementById("filtroMaterial").value;
     const textoFiltro = filtroMat ? `Material: ${filtroMat}` : 'Todos los materiales';
     doc.text(`Filtros: ${textoFiltro} | Fecha: ${new Date().toLocaleDateString()}`, 14, 22);
 
-    // 3. Extraer solo las filas que actualmente se están mostrando en la tabla
     const tableBody = document.getElementById("tablaPiezasBody");
     const rows = Array.from(tableBody.querySelectorAll("tr")).filter(tr => {
-        // Omitir la fila de "Cargando..."
         if (tr.innerText.includes("Cargando...")) return false;
-        // Omitir filas que tu función de filtrado haya ocultado mediante CSS
         if (tr.style.display === "none") return false;
         return true;
     });
 
-    // 4. Mapear las celdas a un arreglo de datos
     const bodyData = rows.map(tr => {
         const tds = tr.querySelectorAll("td");
         if (tds.length >= 6) {
             return [
-                tds[0].innerText.trim(), // Código
-                tds[1].innerText.trim(), // Nombre
-                tds[2].innerText.trim(), // Material
-                tds[3].innerText.trim(), // Ubicación
-                tds[4].innerText.trim(), // Stock
-                tds[5].innerText.trim()  // Estado
+                tds[0].innerText.trim(),
+                tds[1].innerText.trim(),
+                tds[2].innerText.trim(),
+                tds[3].innerText.trim(),
+                tds[4].innerText.trim(),
+                tds[5].innerText.trim()
             ];
         }
         return null;
-    }).filter(Boolean); // Remover nulos
+    }).filter(Boolean);
 
-    // 5. Validar que haya datos antes de generar el PDF
     if (bodyData.length === 0) {
         alert("No hay piezas en la tabla para exportar.");
         return;
     }
 
-    // 6. Generar la tabla con autoTable
     doc.autoTable({
         startY: 28,
         head: [['Código', 'Nombre', 'Material', 'Ubicación', 'Stock', 'Estado']],
         body: bodyData,
         theme: 'striped',
-        headStyles: { fillColor: [234, 88, 12] }, // Cabecera Naranja
+        headStyles: { fillColor: [234, 88, 12] },
         styles: { fontSize: 8, cellPadding: 2 }
     });
 
-    // 7. Descargar el archivo
     doc.save(`Inventario_Volmex_${Date.now()}.pdf`);
 }
 </script>
