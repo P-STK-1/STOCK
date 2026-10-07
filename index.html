@@ -455,35 +455,74 @@ window.addEventListener("DOMContentLoaded", inicializarFirebase);
 // 1.5) AUTENTICACIÓN
 // =========================================================
 async function login() {
-    const email = $('loginEmail').value;
+    const email = $('loginEmail').value.trim();
     const pwd = $('loginPassword').value;
+    const btn = document.querySelector('button[onclick="login()"]');
+    
+    if (!email || !pwd) {
+        $('loginError').textContent = "Por favor ingresa tu correo y contraseña.";
+        $('loginError').classList.remove('hidden');
+        return;
+    }
+
     try {
+        // Cambiar estado del botón para que no parezca congelado
+        btn.textContent = "Iniciando...";
+        btn.disabled = true;
+        
         await auth.signInWithEmailAndPassword(email, pwd);
         $('loginError').classList.add('hidden');
+        // Al tener éxito, onAuthStateChanged ocultará la pantalla automáticamente
+        
     } catch (err) {
-        $('loginError').textContent = "Credenciales incorrectas.";
+        console.error("Error en login:", err); // Para depurar en consola (F12)
+        
+        let mensaje = err.message;
+        if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found') {
+            mensaje = "Correo o contraseña incorrectos. Si eres nuevo, haz clic en 'Registrar'.";
+        }
+        
+        $('loginError').textContent = mensaje;
         $('loginError').classList.remove('hidden');
+        
+        // Restaurar botón
+        btn.textContent = "Iniciar Sesión";
+        btn.disabled = false;
     }
 }
 
 async function registrar() {
-    const email = $('loginEmail').value;
+    const email = $('loginEmail').value.trim();
     const pwd = $('loginPassword').value;
+    const btn = document.querySelector('button[onclick="registrar()"]');
+    
+    if (!email || !pwd) {
+        $('loginError').textContent = "Por favor ingresa tu correo y contraseña para registrarte.";
+        $('loginError').classList.remove('hidden');
+        return;
+    }
+
     try {
+        btn.textContent = "Registrando...";
+        btn.disabled = true;
+        
         await auth.createUserWithEmailAndPassword(email, pwd);
         $('loginError').classList.add('hidden');
         alert("Cuenta creada con éxito.");
+        
     } catch (err) {
-        $('loginError').textContent = "Error al registrar: " + err.message;
+        console.error("Error en registro:", err);
+        
+        let mensaje = err.message;
+        if (err.code === 'auth/email-already-in-use') mensaje = "Este correo ya está registrado. Intenta Iniciar Sesión.";
+        if (err.code === 'auth/weak-password') mensaje = "La contraseña debe tener al menos 6 caracteres.";
+        
+        $('loginError').textContent = "Error: " + mensaje;
         $('loginError').classList.remove('hidden');
+        
+        btn.textContent = "Registrar cuenta nueva";
+        btn.disabled = false;
     }
-}
-
-function cerrarSesion() { auth.signOut(); }
-
-function mostrarSeccion(seccion) {
-    $('seccionInventario').classList.toggle('hidden', seccion !== 'inventario');
-    $('seccionSolicitudes').classList.toggle('hidden', seccion !== 'solicitudes');$('seccionMovimientos').classList.toggle('hidden', seccion !== 'movimientos');
 }
 
 // =========================================================
