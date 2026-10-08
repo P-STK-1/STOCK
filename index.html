@@ -92,7 +92,7 @@
                 <div class="flex items-center justify-between border-b pb-3 mb-4">
                     <div>
                         <h2 id="tituloFormulario" class="font-bold text-lg">Registrar nueva pieza</h2>
-                        <p class="text-xs text-slate-500">Los datos de las piezas se guardan en Firebase Firestore.</p>
+                        <p class="text-xs text-slate-500">Los datos se guardan en Firebase y archivos en Cloudinary.</p>
                     </div>
                     <span id="estadoEdicion" class="hidden text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-semibold">EDITANDO</span>
                 </div>
@@ -118,16 +118,25 @@
                         </div>
                     </div>
 
-                    <!-- NUEVO CAMPO DE CÓDIGO EDITABLE -->
+                    <!-- CAMPO DE CÓDIGO EDITABLE -->
                     <div class="bg-orange-50 border border-orange-200 rounded-lg p-3">
-                        <label class="block text-xs font-bold text-orange-800 mb-1">Código de pieza (Editable para elegir #)</label>
+                        <label class="block text-xs font-bold text-orange-800 mb-1">Código de pieza (Editable)</label>
                         <input type="text" id="codigoPiezaManual" class="w-full bg-white font-mono text-lg font-extrabold text-orange-900 border border-orange-300 rounded p-2" required>
-                        <div class="text-[10px] text-orange-700 mt-1 leading-tight">El sistema sugiere el siguiente número, pero puedes modificarlo manualmente para recuperar un número borrado.</div>
                     </div>
 
                     <div>
                         <label class="block font-semibold mb-1">Nombre de la pieza</label>
                         <input type="text" id="nombre" placeholder="Ej. MENSULA IZQ." class="w-full border rounded-lg p-2.5" required>
+                    </div>
+
+                    <!-- NUEVO: CARGA DE ARCHIVO A CLOUDINARY -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                        <label class="block font-semibold mb-1">Foto, plano o documento (Cloudinary)</label>
+                        <input type="file" id="archivoPieza" accept="image/*,.pdf,.dwg,.dxf" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-orange-100 file:text-orange-700 hover:file:bg-orange-200">
+                        <div id="vistaPreviaArchivo" class="hidden text-xs text-blue-600 mt-2 font-semibold flex items-center gap-1">
+                            <span>📎 Archivo actual:</span>
+                            <a id="enlaceArchivoActual" href="#" target="_blank" class="underline hover:text-blue-800">Ver adjunto existente</a>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-2">
@@ -191,10 +200,11 @@
 
                     <div>
                         <label class="block font-semibold mb-1">Descripción / observaciones</label>
-                        <textarea id="descripcion" rows="3" class="w-full border rounded-lg p-2.5" placeholder="Características, medidas, observaciones o criterios de estandarización..."></textarea>
+                        <textarea id="descripcion" rows="3" class="w-full border rounded-lg p-2.5" placeholder="Características, medidas, observaciones..."></textarea>
                     </div>
 
                     <input type="hidden" id="editDocId" value="">
+                    <input type="hidden" id="imagenUrlActual" value="">
 
                     <div class="flex gap-2 pt-2">
                         <button type="submit" id="btnGuardar" class="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-lg shadow">💾 Guardar pieza</button>
@@ -226,15 +236,15 @@
                 </div>
 
                 <div class="flex items-center justify-between mb-3">
-        <div id="textoResultados" class="text-xs text-slate-500">0 resultados</div>
-        
-        <div class="flex items-center gap-3">
-            <button onclick="descargarPDFInventario()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm flex items-center gap-1">
-                📄 Descargar PDF
-            </button>
-            <button onclick="limpiarFiltros()" class="text-xs text-orange-700 hover:underline font-semibold">Limpiar filtros</button>
-        </div>
-    </div>
+                    <div id="textoResultados" class="text-xs text-slate-500">0 resultados</div>
+                    
+                    <div class="flex items-center gap-3">
+                        <button onclick="descargarPDFInventario()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm flex items-center gap-1">
+                            📄 Descargar PDF
+                        </button>
+                        <button onclick="limpiarFiltros()" class="text-xs text-orange-700 hover:underline font-semibold">Limpiar filtros</button>
+                    </div>
+                </div>
 
                 <div class="overflow-x-auto border rounded-lg">
                     <table class="w-full text-xs text-left min-w-[980px]">
@@ -374,7 +384,7 @@
                     <div><label class="block font-semibold mb-1">Cantidad</label><input id="movCantidad" type="number" min="1" value="1" required class="w-full border rounded-lg p-2.5"></div>
                 </div>
                 <div><label class="block font-semibold mb-1">Responsable</label><input id="movResponsable" required class="w-full border rounded-lg p-2.5" placeholder="Nombre del responsable"></div>
-                <div><label class="block font-semibold mb-1">Motivo</label><textarea id="movMotivo" rows="3" class="w-full border rounded-lg p-2.5" placeholder="Producción, compra, consumo, corrección de inventario..."></textarea></div>
+                <div><label class="block font-semibold mb-1">Motivo</label><textarea id="movMotivo" rows="3" class="w-full border rounded-lg p-2.5" placeholder="Producción, compra, consumo, corrección..."></textarea></div>
                 <button type="submit" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-lg">💾 Guardar movimiento</button>
             </form>
         </div>
@@ -396,7 +406,7 @@
 
 <script>
 // =========================================================
-// 1) CONFIGURACIÓN FIREBASE Y VARIABLES
+// 1) CONFIGURACIÓN FIREBASE Y CLOUDINARY
 // =========================================================
 const firebaseConfig = {
     apiKey: "AIzaSyAVKF5Q0tWa1Yhh2Kk67-MIAbPlG13hlls",
@@ -409,6 +419,10 @@ const firebaseConfig = {
     measurementId: "G-TYN037MFWB"
 };
 
+// NOMBRE DE TU CUENTA EN CLOUDINARY
+const CLOUD_NAME = "pi3zzqgl"; 
+const UPLOAD_PRESET = "zgwlu2e1"; // Preset 'Sin signar' de tu captura
+
 const ADMIN_PASSWORD = "admin123";
 
 let app, db, auth;
@@ -416,6 +430,26 @@ let piezas = [], solicitudes = [], movimientos = [];
 let html5QrCode = null;
 let unsubscribePiezas = null, unsubscribeSolicitudes = null, unsubscribeMovimientos = null;
 const $ = id => document.getElementById(id);
+
+// Función para subir archivos a Cloudinary sin servidor
+async function subirACloudinary(archivo) {
+    const formData = new FormData();
+    formData.append("file", archivo);
+    formData.append("upload_preset", UPLOAD_PRESET);
+
+    const respuesta = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/upload`, {
+        method: "POST",
+        body: formData
+    });
+
+    if (!respuesta.ok) {
+        const err = await respuesta.json();
+        throw new Error(err.error?.message || "Error al subir archivo a Cloudinary");
+    }
+
+    const datos = await respuesta.json();
+    return datos.secure_url;
+}
 
 async function inicializarFirebase() {
     try {
@@ -425,7 +459,6 @@ async function inicializarFirebase() {
         db = firebase.firestore();
         auth = firebase.auth();
 
-        // Control de sesión
         auth.onAuthStateChanged(user => {
             if (user) {
                 $('pantallaLogin').classList.add('hidden');$('estadoConexion').textContent = "Usuario conectado";
@@ -466,26 +499,19 @@ async function login() {
     }
 
     try {
-        // Cambiar estado del botón para que no parezca congelado
         btn.textContent = "Iniciando...";
         btn.disabled = true;
         
         await auth.signInWithEmailAndPassword(email, pwd);
         $('loginError').classList.add('hidden');
-        // Al tener éxito, onAuthStateChanged ocultará la pantalla automáticamente
-        
     } catch (err) {
-        console.error("Error en login:", err); // Para depurar en consola (F12)
-        
+        console.error("Error en login:", err);
         let mensaje = err.message;
         if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found') {
-            mensaje = "Correo o contraseña incorrectos. Si eres nuevo, haz clic en 'Registrar'.";
+            mensaje = "Correo o contraseña incorrectos.";
         }
-        
         $('loginError').textContent = mensaje;
         $('loginError').classList.remove('hidden');
-        
-        // Restaurar botón
         btn.textContent = "Iniciar Sesión";
         btn.disabled = false;
     }
@@ -497,7 +523,7 @@ async function registrar() {
     const btn = document.querySelector('button[onclick="registrar()"]');
     
     if (!email || !pwd) {
-        $('loginError').textContent = "Por favor ingresa tu correo y contraseña para registrarte.";
+        $('loginError').textContent = "Por favor ingresa correo y contraseña.";
         $('loginError').classList.remove('hidden');
         return;
     }
@@ -505,76 +531,49 @@ async function registrar() {
     try {
         btn.textContent = "Registrando...";
         btn.disabled = true;
-        
         await auth.createUserWithEmailAndPassword(email, pwd);
         $('loginError').classList.add('hidden');
         alert("Cuenta creada con éxito.");
-        
     } catch (err) {
         console.error("Error en registro:", err);
-        
         let mensaje = err.message;
-        if (err.code === 'auth/email-already-in-use') mensaje = "Este correo ya está registrado. Intenta Iniciar Sesión.";
+        if (err.code === 'auth/email-already-in-use') mensaje = "Este correo ya está registrado.";
         if (err.code === 'auth/weak-password') mensaje = "La contraseña debe tener al menos 6 caracteres.";
-        
         $('loginError').textContent = "Error: " + mensaje;
         $('loginError').classList.remove('hidden');
-        
         btn.textContent = "Registrar cuenta nueva";
         btn.disabled = false;
     }
 }
 
-// =========================================================
-// NAVEGACIÓN Y CIERRE DE SESIÓN
-// =========================================================
-
 function mostrarSeccion(idDestino) {
-    // IDs reales de las secciones visibles del sistema.
-    // También aceptamos los nombres cortos por compatibilidad.
     const equivalencias = {
         inventario: 'seccionInventario',
         solicitudes: 'seccionSolicitudes',
         movimientos: 'seccionMovimientos'
     };
-
     const idReal = equivalencias[idDestino] || idDestino;
+    const pantallas = ['seccionInventario', 'seccionSolicitudes', 'seccionMovimientos'];
 
-    const pantallas = [
-        'seccionInventario',
-        'seccionSolicitudes',
-        'seccionMovimientos'
-    ];
-
-    // Ocultar todas las secciones.
     pantallas.forEach(id => {
         const elemento = document.getElementById(id);
         if (elemento) elemento.classList.add('hidden');
     });
 
-    // Mostrar la sección solicitada.
     const pantallaDestino = document.getElementById(idReal);
-    if (!pantallaDestino) {
-        console.error('No se encontró la sección:', idReal);
-        return;
+    if (pantallaDestino) {
+        pantallaDestino.classList.remove('hidden');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-
-    pantallaDestino.classList.remove('hidden');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 async function cerrarSesion() {
     try {
-        if (!auth) {
-            alert('Firebase todavía no está listo. Intenta nuevamente.');
-            return;
-        }
-
+        if (!auth) return;
         await auth.signOut();
         window.location.reload();
     } catch (error) {
-        console.error('Error al cerrar sesión:', error);
-        alert('Error al cerrar sesión: ' + (error.message || error));
+        alert('Error al cerrar sesión: ' + error.message);
     }
 }
 
@@ -585,18 +584,13 @@ function escucharPiezas() {
     if (unsubscribePiezas) unsubscribePiezas();
     unsubscribePiezas = db.collection('piezas').orderBy('fechaRegistro', 'desc').onSnapshot(snapshot => {
         piezas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
         actualizarEstadisticas();
         actualizarSelectPiezas();
         poblarSelectFiltros(); 
-        aplicarFiltros(); // Esto ahora llama a la función unificada y correcta
+        aplicarFiltros();
         actualizarCodigoVistaPrevia();
     }, error => {
         console.error('Error leyendo piezas:', error);
-        const tbody = $('tablaPiezasBody');
-        if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="7" class="p-5 text-center text-red-600">Error al cargar inventario: ${error.message || 'Error desconocido'}</td></tr>`;
-        }
     });
 }
 function escucharSolicitudes() {
@@ -605,10 +599,6 @@ function escucharSolicitudes() {
         solicitudes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         $('statSolicitudes').textContent = solicitudes.filter(s => s.estado === 'Pendiente').length;
         renderSolicitudes();
-    }, error => {
-        console.error('Error leyendo solicitudes:', error);
-        $('tablaSolicitudesBody').innerHTML =
-            `<tr><td colspan="7" class="p-5 text-center text-red-600">Error al cargar solicitudes: ${error.message || 'Error desconocido'}</td></tr>`;
     });
 }
 function escucharMovimientos() {
@@ -616,26 +606,20 @@ function escucharMovimientos() {
     unsubscribeMovimientos = db.collection('movimientos').orderBy('createdAt', 'desc').limit(100).onSnapshot(snapshot => {
         movimientos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderMovimientos();
-    }, error => {
-        console.error('Error leyendo movimientos:', error);
-        $('tablaMovimientosBody').innerHTML =
-            `<tr><td colspan="7" class="p-5 text-center text-red-600">Error al cargar movimientos: ${error.message || 'Error desconocido'}</td></tr>`;
     });
 }
 
 // =========================================================
-// 3) INVENTARIO Y CÓDIGOS
+// 3) INVENTARIO Y GUARDADO DE PIEZAS CON CLOUDINARY
 // =========================================================
 function actualizarEstadisticas() {
     $('statPiezas').textContent = piezas.length;
-    $('statUnidades').textContent = piezas.reduce((a, p) => a + (Number(p.stockActual) || 0), 0);
-    $('statBajoMin').textContent = piezas.filter(p => Number(p.stockActual) > 0 && Number(p.stockActual) <= Number(p.stockMin)).length;
+    $('statUnidades').textContent = piezas.reduce((a, p) => a + (Number(p.stockActual) \vert{}\vert{} 0), 0);$('statBajoMin').textContent = piezas.filter(p => Number(p.stockActual) > 0 && Number(p.stockActual) <= Number(p.stockMin)).length;
     $('statSinStock').textContent = piezas.filter(p => Number(p.stockActual) === 0).length;
 }
 
 function actualizarCodigoVistaPrevia() {
     if ($('editDocId').value) return; 
-    
     const cat = $('categoria').value;
     const proc = $('proceso').value;
     const sufijo = `S${cat}${proc}`.toUpperCase();
@@ -644,12 +628,8 @@ function actualizarCodigoVistaPrevia() {
         .filter(p => p.codigoPieza && p.codigoPieza.toUpperCase().endsWith(`-${sufijo}`))
         .map(p => {
             const partes = p.codigoPieza.split('-');
-            if(partes.length >= 2 && !isNaN(partes[1])) {
-                return Number(partes[1]);
-            }
-            return 0;
-        })
-        .filter(Number.isFinite);
+            return (partes.length >= 2 && !isNaN(partes[1])) ? Number(partes[1]) : 0;
+        }).filter(Number.isFinite);
         
     const siguiente = numeros.length ? Math.max(...numeros) + 1 : 1;
     $('codigoPiezaManual').value = `P-${String(siguiente).padStart(3, '0')}-${sufijo}`;
@@ -659,7 +639,7 @@ async function guardarPieza(e) {
     e.preventDefault();
     const id = $('editDocId').value.trim();
     const btn = $('btnGuardar');
-    btn.disabled = true; btn.textContent = "Guardando...";
+    btn.disabled = true;
 
     try {
         let codigo = $('codigoPiezaManual').value.trim().toUpperCase();
@@ -670,6 +650,17 @@ async function guardarPieza(e) {
                 return;
             }
         }
+
+        // Subir archivo a Cloudinary si se seleccionó uno
+        let imagenUrl = $('imagenUrlActual').value;
+        const inputArchivo = $('archivoPieza');
+        
+        if (inputArchivo.files && inputArchivo.files[0]) {
+            btn.textContent = "☁️ Subiendo archivo...";
+            imagenUrl = await subirACloudinary(inputArchivo.files[0]);
+        }
+
+        btn.textContent = "💾 Guardar en Firebase...";
 
         const data = {
             codigoPieza: codigo,
@@ -686,23 +677,25 @@ async function guardarPieza(e) {
             stockActual: Number($('stockActual').value),
             stockMin: Number($('stockMin').value),
             stockMax: Number($('stockMax').value),
-            descripcion: $('descripcion').value
+            descripcion: $('descripcion').value,
+            imagenUrl: imagenUrl
         };
 
         if (id) {
             await db.collection('piezas').doc(id).update(data);
-            alert("Pieza actualizada con éxito");
+            alert("Pieza actualizada con éxito.");
         } else {
             data.fechaRegistro = firebase.firestore.FieldValue.serverTimestamp();
             await db.collection('piezas').add(data);
-            alert("Pieza creada con éxito");
+            alert("Pieza registrada con éxito.");
         }
         cancelarEdicion();
     } catch (error) {
         console.error(error);
         alert("Error al guardar: " + error.message);
     }
-    btn.disabled = false; btn.textContent = "💾 Guardar pieza";
+    btn.disabled = false; 
+    btn.textContent = "💾 Guardar pieza";
 }
 
 function editarPieza(id) {
@@ -726,6 +719,15 @@ function editarPieza(id) {
     $('stockMax').value = p.stockMax;
     $('descripcion').value = p.descripcion || "";
 
+    // Manejar URL existente del archivo
+    $('imagenUrlActual').value = p.imagenUrl || "";
+    if (p.imagenUrl) {
+        $('enlaceArchivoActual').href = p.imagenUrl;
+        $('vistaPreviaArchivo').classList.remove('hidden');
+    } else {
+        $('vistaPreviaArchivo').classList.add('hidden');
+    }
+
     $('tituloFormulario').textContent = "Editar pieza: " + p.codigoPieza;
     $('estadoEdicion').classList.remove('hidden');
     $('btnCancelarEdicion').classList.remove('hidden');$('btnGuardar').textContent = "💾 Actualizar pieza";
@@ -734,7 +736,9 @@ function editarPieza(id) {
 
 function cancelarEdicion() {
     $('formPieza').reset();$('editDocId').value = "";
-    $('tituloFormulario').textContent = "Registrar nueva pieza";
+    $('imagenUrlActual').value = "";
+    $('archivoPieza').value = "";
+    $('vistaPreviaArchivo').classList.add('hidden');$('tituloFormulario').textContent = "Registrar nueva pieza";
     $('estadoEdicion').classList.add('hidden');
     $('btnCancelarEdicion').classList.add('hidden');$('btnGuardar').textContent = "💾 Guardar pieza";
     actualizarCodigoVistaPrevia();
@@ -743,13 +747,13 @@ function cancelarEdicion() {
 function eliminarPieza(id) {
     const pwd = prompt("ACCESO RESTRINGIDO\nIngrese la contraseña para eliminar la pieza:");
     if (pwd === ADMIN_PASSWORD) {
-        if(confirm("¿Está seguro de eliminar esta pieza permanentemente? Esto no afectará el historial de movimientos.")) {
+        if(confirm("¿Está seguro de eliminar esta pieza permanentemente?")) {
             db.collection('piezas').doc(id).delete()
               .then(() => alert("Pieza eliminada correctamente."))
               .catch(err => alert("Error al eliminar: " + err.message));
         }
     } else if (pwd !== null) {
-        alert("Contraseña incorrecta. No se eliminó la pieza.");
+        alert("Contraseña incorrecta.");
     }
 }
 
@@ -799,7 +803,7 @@ function imprimirEtiqueta() {
 }
 
 // =========================================================
-// 5) FILTROS UNIFICADOS Y CORRECTOS
+// 5) FILTROS Y RENDERIZADO DE INVENTARIO
 // =========================================================
 function poblarSelectFiltros() {
     const selectMaterial = $('filtroMaterial');
@@ -809,20 +813,13 @@ function poblarSelectFiltros() {
     const matSeleccionado = selectMaterial.value;
     const calSeleccionado = selectCalibre.value;
 
-    const materialesUnicos = [...new Set(
-        piezas.map(p => p.material ? String(p.material).trim() : '').filter(m => m !== '')
-    )].sort();
+    const materialesUnicos = [...new Set(piezas.map(p => p.material ? String(p.material).trim() : '').filter(m => m !== ''))].sort();
+    const calibresUnicos = [...new Set(piezas.map(p => p.calibre ? String(p.calibre).trim() : '').filter(c => c !== ''))].sort();
 
-    const calibresUnicos = [...new Set(
-        piezas.map(p => p.calibre ? String(p.calibre).trim() : '').filter(c => c !== '')
-    )].sort();
-
-    selectMaterial.innerHTML = '<option value="">Todos los materiales</option>' +
-        materialesUnicos.map(mat => `<option value="${mat}">${mat}</option>`).join('');
+    selectMaterial.innerHTML = '<option value="">Todos los materiales</option>' + materialesUnicos.map(mat => `<option value="${mat}">${mat}</option>`).join('');
     selectMaterial.value = matSeleccionado;
 
-    selectCalibre.innerHTML = '<option value="">Todos los calibres</option>' +
-        calibresUnicos.map(cal => `<option value="${cal}">${cal}</option>`).join('');
+    selectCalibre.innerHTML = '<option value="">Todos los calibres</option>' + calibresUnicos.map(cal => `<option value="${cal}">${cal}</option>`).join('');
     selectCalibre.value = calSeleccionado;
 }
 
@@ -847,7 +844,6 @@ function aplicarFiltros() {
         else if (Number(p.stockActual) <= Number(p.stockMin)) estado = 'BAJO';
 
         const matchEst = !estFiltro || estado === estFiltro;
-
         return matchTexto && matchMat && matchCal && matchCat && matchEst;
     });
 
@@ -870,6 +866,9 @@ function renderTablaPiezas(piezasParaMostrar) {
         if (Number(p.stockActual) === 0) estadoStr = `<span class="bg-red-100 text-red-800 px-2 py-1 rounded text-[10px] font-bold">SIN STOCK</span>`;
         else if (Number(p.stockActual) <= Number(p.stockMin)) estadoStr = `<span class="bg-amber-100 text-amber-800 px-2 py-1 rounded text-[10px] font-bold">BAJO</span>`;
 
+        // Botón de adjunto si existe URL de Cloudinary
+        const botonAdjunto = p.imagenUrl ? `<a href="${p.imagenUrl}" target="_blank" class="bg-purple-100 hover:bg-purple-200 text-purple-800 px-2 py-1 rounded font-bold" title="Ver foto o plano adjunto">📁 Adjunto</a>` : '';
+
         tbody.innerHTML += `
             <tr class="hover:bg-slate-50 border-b">
                 <td class="p-2.5 font-mono font-bold text-orange-700">${p.codigoPieza}</td>
@@ -879,6 +878,7 @@ function renderTablaPiezas(piezasParaMostrar) {
                 <td class="p-2.5 text-center font-bold">${p.stockActual}</td>
                 <td class="p-2.5">${estadoStr}</td>
                 <td class="p-2.5 text-center flex justify-center gap-1">
+                    ${botonAdjunto}
                     <button onclick="verQR('${p.id}')" class="bg-orange-100 hover:bg-orange-200 text-orange-800 px-2 py-1 rounded font-bold">🏷️ QR</button>
                     <button onclick="editarPieza('${p.id}')" class="bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded font-bold">Editar</button>
                     <button onclick="eliminarPieza('${p.id}')" class="bg-red-100 hover:bg-red-200 text-red-800 px-2 py-1 rounded font-bold">Borrar</button>
@@ -1086,79 +1086,47 @@ async function abrirEscaner() {
     }
 
     if (typeof Html5Qrcode === 'undefined') {
-        alert('No se pudo cargar la librería del escáner QR. Revisa tu conexión a internet y vuelve a cargar la página.');
+        alert('No se pudo cargar la librería del escáner QR.');
         return;
     }
 
     modal.classList.remove('hidden');
 
     try {
-        if (!html5QrCode) {
-            html5QrCode = new Html5Qrcode('reader');
-        }
-
-        // Evitar intentar iniciar una cámara que ya está activa.
+        if (!html5QrCode) html5QrCode = new Html5Qrcode('reader');
         if (html5QrCode.isScanning) return;
 
         reader.innerHTML = 'Iniciando cámara...';
 
         await html5QrCode.start(
             { facingMode: 'environment' },
-            {
-                fps: 10,
-                qrbox: { width: 250, height: 250 },
-                aspectRatio: 1.0
-            },
+            { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
             (decodedText) => {
                 const codigo = String(decodedText || '').trim().toUpperCase();
-
-                // El QR contiene el código de la pieza.
                 $('filtroNombre').value = codigo;
                 aplicarFiltros();
 
-                const piezaEncontrada = piezas.find(p =>
-                    String(p.codigoPieza || '').trim().toUpperCase() === codigo
-                );
-
+                const piezaEncontrada = piezas.find(p => String(p.codigoPieza || '').trim().toUpperCase() === codigo);
                 cerrarEscaner();
                 mostrarSeccion('seccionInventario');
 
                 if (!piezaEncontrada) {
-                    alert(
-                        'Código leído: ' + codigo +
-                        '\nNo se encontró una pieza con ese código en el inventario.'
-                    );
+                    alert('Código leído: ' + codigo + '\nNo se encontró una pieza con ese código.');
                 }
             },
             () => { }
         );
     } catch (err) {
         console.error('Error del escáner:', err);
-
-        let mensaje = 'No se pudo iniciar la cámara.';
-        if (location.protocol === 'file:') {
-            mensaje += ' Abre el archivo mediante un servidor local (por ejemplo, localhost) o desde HTTPS.';
-        } else {
-            mensaje += ' Verifica que el navegador tenga permiso para usar la cámara.';
-        }
-
-        alert(mensaje);
-
-        try {
-            if (html5QrCode && html5QrCode.isScanning) {
-                await html5QrCode.stop();
-            }
-        } catch (_) {}
-
+        alert('No se pudo iniciar la cámara. Verifica los permisos.');
+        try { if (html5QrCode && html5QrCode.isScanning) await html5QrCode.stop(); } catch (_) {}
         modal.classList.add('hidden');
     }
 }
 
 async function cerrarEscaner() {
     try {
-        if (html5QrCode && html5QrCode.isScanning) {
-            await html5QrCode.stop();
-        }
+        if (html5QrCode && html5QrCode.isScanning) await html5QrCode.stop();
     } catch (err) {
         console.error('Error al detener el escáner:', err);
     } finally {
