@@ -440,6 +440,7 @@
                 </div>
 
                 <div id="qrDetallePieza" class="text-[11px] text-slate-600 font-semibold border-t border-slate-200 pt-2">Material: A-36 | Ubicación: Rack A-01</div>
+                <div class="text-[10px] text-slate-500 pt-1">Escanea este QR para abrir la ficha de la pieza y realizar el retiro.</div>
             </div>
 
             <div class="mt-5 flex gap-2">
@@ -499,7 +500,7 @@
                     <div class="col-span-2"><div class="text-xs text-slate-500 mb-1">Descripción / observaciones</div><div id="detalleDescripcion" class="bg-slate-50 rounded-lg p-3 min-h-[70px] whitespace-pre-wrap"></div></div>
                 </div>
             </div>
-            <div class="mt-5 border-t pt-4">
+            <div id="panelSalidaDetalle" class="mt-5 border-t pt-4 hidden">
                 <div class="flex flex-col md:flex-row md:items-end gap-3">
                     <div class="md:w-32"><label class="block text-xs font-semibold mb-1">Cantidad a retirar</label><input id="salidaCantidadDetalle" type="number" min="1" value="1" class="w-full border rounded-lg p-2.5"></div>
                     <div class="flex-1"><label class="block text-xs font-semibold mb-1">Responsable</label><input id="salidaResponsableDetalle" type="text" class="w-full border rounded-lg p-2.5" placeholder="Nombre del responsable"></div>
@@ -507,6 +508,10 @@
                     <button id="btnRetirarDetalle" onclick="retirarStockDesdeDetalle()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-4 rounded-lg shadow">📤 Retirar del stock</button>
                 </div>
                 <p class="text-[11px] text-slate-500 mt-2">La salida se registra también en <b>Movimientos</b> para conservar la trazabilidad.</p>
+            </div>
+
+            <div id="detalleModoLectura" class="mt-5 border-t pt-4 text-center text-xs text-slate-500">
+                Consulta de información. Para retirar stock utiliza el código QR de la pieza.
             </div>
         </div>
     </div>
@@ -551,6 +556,7 @@ let piezas = [], solicitudes = [], movimientos = [], placas = [];
 let html5QrCode = null;
 let unsubscribePiezas = null, unsubscribeSolicitudes = null, unsubscribeMovimientos = null, unsubscribePlacas = null;
 let piezaDetalleActualId = null;
+let codigoPiezaPendienteURL = null;
 let escaneoProcesado = false;
 const $ = id => document.getElementById(id);
 
@@ -634,6 +640,71 @@ async function subirACloudinary(archivo) {
     return datos.secure_url;
 }
 
+function extraerCodigoDesdeQR(valor) {
+    const texto = String(valor || '').trim();
+    if (!texto) return '';
+
+    // QR nuevo: URL del sistema con ?pieza=CODIGO
+    try {
+        const url = new URL(texto);
+        const parametro = url.searchParams.get('pieza');
+        if (parametro) return decodeURIComponent(parametro).trim().toUpperCase();
+    } catch (_) {
+        // No es una URL; se interpreta como código directo (compatibilidad con QRs anteriores).
+    }
+
+    return texto.toUpperCase();
+}
+
+function obtenerUrlPiezaQR(p) {
+    // Al imprimir/generar el QR se crea un enlace a esta misma aplicación.
+    // Ejemplo: https://tusitio.web.app/?pieza=P-001-SVD
+    try {
+        const url = new URL(window.location.href);
+        url.search = '';
+        url.hash = '';
+        url.searchParams.set('pieza', p.codigoPieza || p.id || '');
+        return url.toString();
+    } catch (_) {
+        return p.codigoPieza || p.id || '';
+    }
+}
+
+function obtenerCodigoPiezaDesdeURL() {
+    try {
+        const url = new URL(window.location.href);
+        const codigo = url.searchParams.get('pieza');
+        return codigo ? decodeURIComponent(codigo).trim().toUpperCase() : '';
+    } catch (_) {
+        return '';
+    }
+}
+
+function abrirPiezaPendienteDesdeURL() {
+    if (!db || !piezas.length) return;
+
+    const codigo = codigoPiezaPendienteURL || obtenerCodigoPiezaDesdeURL();
+    if (!codigo) return;
+
+    const pieza = piezas.find(p =>
+        String(p.codigoPieza || '').trim().toUpperCase() === codigo
+    );
+
+    if (!pieza) return;
+
+    codigoPiezaPendienteURL = null;
+
+    // Limpia la URL para que al recargar no vuelva a abrir automáticamente.
+    try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('pieza');
+        window.history.replaceState({}, document.title, url.pathname + (url.search ? url.search : '') + (url.hash || ''));
+    } catch (_) {}
+
+    mostrarSeccion('seccionInventario');
+    abrirDetallePieza(pieza.id, true);
+}
+
 async function inicializarFirebase() {
     try {
         if (!firebase.apps.length) app = firebase.initializeApp(firebaseConfig);
@@ -667,6 +738,7 @@ async function inicializarFirebase() {
         alert("No se pudo conectar a Firebase.");
     }
 }
+codigoPiezaPendienteURL = obtenerCodigoPiezaDesdeURL();
 window.addEventListener("DOMContentLoaded", inicializarFirebase);
 
 // =========================================================
@@ -1002,6 +1074,13 @@ function abrirDetallePieza(id, enfocarSalida=false) {
     $('salidaCantidadDetalle').max = Math.max(1, Number(p.stockActual) || 1);
     $('salidaResponsableDetalle').value = usuarioActualTexto();
     $('salidaMotivoDetalle').value = '';
+
+    const panelSalida = $('panelSalidaDetalle');
+    const modoLectura = $('detalleModoLectura');
+
+    if (panelSalida) panelSalida.classList.toggle('hidden', !enfocarSalida);
+    if (modoLectura) modoLectura.classList.toggle('hidden', !!enfocarSalida);
+
     $('modalDetallePieza').classList.remove('hidden');
 
     if (enfocarSalida) {
@@ -1087,7 +1166,7 @@ function verQR(id) {
     container.innerHTML = '';
 
     new QRCode(container, {
-        text: p.codigoPieza,
+        text: obtenerUrlPiezaQR(p),
         width: 150, height: 150,
         colorDark : "#000000", colorLight : "#ffffff",
         correctLevel : QRCode.CorrectLevel.H
@@ -1213,7 +1292,6 @@ function renderTablaPiezas(piezasParaMostrar) {
                 <td class="p-2.5">
                     <div class="flex flex-wrap justify-center gap-1">
                         <button onclick="abrirDetallePieza('${p.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-800 px-2 py-1 rounded font-bold">👁️ Ver</button>
-                        <button onclick="abrirDetallePieza('${p.id}', true)" class="bg-red-100 hover:bg-red-200 text-red-800 px-2 py-1 rounded font-bold">📤 Salida</button>
                         <button onclick="verQR('${p.id}')" class="bg-orange-100 hover:bg-orange-200 text-orange-800 px-2 py-1 rounded font-bold">🏷️ QR</button>
                         <button onclick="editarPieza('${p.id}')" class="bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded font-bold">Editar</button>
                         <button onclick="eliminarPieza('${p.id}')" class="bg-red-100 hover:bg-red-200 text-red-800 px-2 py-1 rounded font-bold">Borrar</button>
@@ -1661,7 +1739,7 @@ async function abrirEscaner() {
                 if (escaneoProcesado) return;
                 escaneoProcesado = true;
 
-                const codigo = String(decodedText || '').trim().toUpperCase();
+                const codigo = extraerCodigoDesdeQR(decodedText);
                 const piezaEncontrada = piezas.find(p => String(p.codigoPieza || '').trim().toUpperCase() === codigo);
 
                 await cerrarEscaner();
@@ -1674,6 +1752,7 @@ async function abrirEscaner() {
                     return;
                 }
 
+                // Al escanear se abre directamente el modo de retiro.
                 abrirDetallePieza(piezaEncontrada.id, true);
             },
             () => {}
