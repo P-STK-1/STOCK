@@ -50,6 +50,7 @@
 
         <div class="flex flex-wrap gap-2 items-center">
             <button onclick="mostrarSeccion('seccionInventario')" class="bg-white/15 hover:bg-white/25 px-3 py-2 rounded-lg text-sm font-semibold">📦 Inventario</button>
+            <button onclick="mostrarSeccion('seccionPlacas')" class="bg-white/15 hover:bg-white/25 px-3 py-2 rounded-lg text-sm font-semibold">🪵 Placas sobrantes</button>
             <button onclick="mostrarSeccion('seccionSolicitudes')" class="bg-white/15 hover:bg-white/25 px-3 py-2 rounded-lg text-sm font-semibold">📝 Solicitudes</button>
             <button onclick="mostrarSeccion('seccionMovimientos')" class="bg-white/15 hover:bg-white/25 px-3 py-2 rounded-lg text-sm font-semibold">🔄 Movimientos</button>
             <button onclick="abrirEscaner()" class="bg-white text-orange-700 hover:bg-orange-50 px-3 py-2 rounded-lg text-sm font-bold shadow">📷 Escanear</button>
@@ -82,6 +83,10 @@
             <div class="bg-white rounded-xl shadow p-4">
                 <div class="text-xs text-slate-500">Solicitudes pendientes</div>
                 <div id="statSolicitudes" class="text-2xl font-extrabold mt-1 text-orange-600">0</div>
+            </div>
+            <div class="bg-white rounded-xl shadow p-4">
+                <div class="text-xs text-slate-500">Unidades en placas sobrantes</div>
+                <div id="statPlacas" class="text-2xl font-extrabold mt-1 text-slate-700">0</div>
             </div>
         </div>
 
@@ -132,7 +137,7 @@
                     <!-- NUEVO: CARGA DE ARCHIVO A CLOUDINARY -->
                     <div class="bg-slate-50 border border-slate-200 rounded-lg p-3">
                         <label class="block font-semibold mb-1">Foto, plano o documento (Cloudinary)</label>
-                        <input type="file" id="archivoPieza" accept="image/*,.pdf,.dwg,.dxf" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-orange-100 file:text-orange-700 hover:file:bg-orange-200">
+                        <input type="file" id="archivoPieza" accept="image/*,.pdf,.dwg,.dxf,.doc,.docx,.xls,.xlsx,.zip,.txt" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-orange-100 file:text-orange-700 hover:file:bg-orange-200">
                         <div id="vistaPreviaArchivo" class="hidden text-xs text-blue-600 mt-2 font-semibold flex items-center gap-1">
                             <span>📎 Archivo actual:</span>
                             <a id="enlaceArchivoActual" href="#" target="_blank" class="underline hover:text-blue-800">Ver adjunto existente</a>
@@ -238,7 +243,17 @@
                 <div class="flex items-center justify-between mb-3">
                     <div id="textoResultados" class="text-xs text-slate-500">0 resultados</div>
                     
-                    <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <select id="ordenInventario" onchange="aplicarFiltros()" class="border rounded-lg p-1.5 text-xs">
+                            <option value="fecha_desc">Más recientes</option>
+                            <option value="fecha_asc">Más antiguos</option>
+                            <option value="codigo_asc">Código: menor → mayor</option>
+                            <option value="codigo_desc">Código: mayor → menor</option>
+                            <option value="nombre_asc">Nombre: A → Z</option>
+                            <option value="nombre_desc">Nombre: Z → A</option>
+                            <option value="stock_asc">Stock: menor → mayor</option>
+                            <option value="stock_desc">Stock: mayor → menor</option>
+                        </select>
                         <button onclick="descargarPDFInventario()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm flex items-center gap-1">
                             📄 Descargar PDF
                         </button>
@@ -252,6 +267,7 @@
                             <tr class="bg-slate-100 text-slate-700 border-b">
                                 <th class="p-2.5">Código</th>
                                 <th class="p-2.5">Nombre</th>
+                                <th class="p-2.5">Archivo</th>
                                 <th class="p-2.5">Material</th>
                                 <th class="p-2.5">Ubicación</th>
                                 <th class="p-2.5 text-center">Stock</th>
@@ -259,7 +275,69 @@
                                 <th class="p-2.5 text-center">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody id="tablaPiezasBody" class="divide-y"><tr><td colspan="7" class="p-5 text-center text-slate-400">Cargando...</td></tr></tbody>
+                        <tbody id="tablaPiezasBody" class="divide-y"><tr><td colspan="8" class="p-5 text-center text-slate-400">Cargando...</td></tr></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </section>
+
+
+    <!-- PLACAS SOBRANTES -->
+    <section id="seccionPlacas" class="hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            <section class="lg:col-span-5 bg-white rounded-xl shadow-md p-5 h-fit">
+                <div class="flex items-center justify-between border-b pb-3 mb-4">
+                    <div>
+                        <h2 id="tituloPlaca" class="font-bold text-lg">Registrar placa sobrante</h2>
+                        <p class="text-xs text-slate-500">Controla retales aprovechables, sus medidas, ubicación y piezas posibles.</p>
+                    </div>
+                    <span id="estadoEdicionPlaca" class="hidden text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-semibold">EDITANDO</span>
+                </div>
+                <form id="formPlaca" onsubmit="guardarPlaca(event)" class="space-y-3 text-sm">
+                    <input type="hidden" id="editPlacaId" value="">
+                    <input type="hidden" id="archivoPlacaUrlActual" value="">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div><label class="block font-semibold mb-1">Código de placa</label><input type="text" id="codigoPlaca" class="w-full border rounded-lg p-2.5 font-mono font-bold" placeholder="PLACA-001" required></div>
+                        <div><label class="block font-semibold mb-1">Estado</label><select id="estadoPlaca" class="w-full border rounded-lg p-2.5"><option value="Disponible">Disponible</option><option value="Reservada">Reservada</option><option value="Consumida">Consumida</option></select></div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div><label class="block font-semibold mb-1">Material</label><input type="text" id="materialPlaca" placeholder="Ej. A-36" class="w-full border rounded-lg p-2.5" required></div>
+                        <div><label class="block font-semibold mb-1">Calibre / espesor</label><input type="text" id="calibrePlaca" placeholder="Ej. 3/16" class="w-full border rounded-lg p-2.5" required></div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div><label class="block font-semibold mb-1">Largo (mm)</label><input type="number" id="largoPlaca" min="0" step="0.01" class="w-full border rounded-lg p-2.5" required></div>
+                        <div><label class="block font-semibold mb-1">Ancho (mm)</label><input type="number" id="anchoPlaca" min="0" step="0.01" class="w-full border rounded-lg p-2.5" required></div>
+                        <div><label class="block font-semibold mb-1">Cantidad</label><input type="number" id="cantidadPlaca" min="1" value="1" class="w-full border rounded-lg p-2.5" required></div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div><label class="block font-semibold mb-1">Ubicación</label><input type="text" id="ubicacionPlaca" placeholder="Ej. Rack P-02" class="w-full border rounded-lg p-2.5"></div>
+                        <div><label class="block font-semibold mb-1">Origen</label><input type="text" id="origenPlaca" placeholder="Ej. Corte de Lowboy 025" class="w-full border rounded-lg p-2.5"></div>
+                    </div>
+                    <div><label class="block font-semibold mb-1">Piezas asociadas / cortes posibles</label><textarea id="piezasAprovechables" rows="3" class="w-full border rounded-lg p-2.5" placeholder="Ej. Ménsula P-014, refuerzo P-032, soporte P-041..."></textarea></div>
+                    <div class="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                        <label class="block font-semibold mb-1">Foto, plano o documento</label>
+                        <input type="file" id="archivoPlaca" accept="image/*,.pdf,.dwg,.dxf,.doc,.docx,.xls,.xlsx,.zip,.txt" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-orange-100 file:text-orange-700">
+                        <div id="vistaArchivoPlaca" class="hidden text-xs text-blue-600 mt-2 font-semibold">📎 <a id="enlaceArchivoPlacaActual" href="#" target="_blank" class="underline">Ver adjunto</a></div>
+                    </div>
+                    <div><label class="block font-semibold mb-1">Observaciones</label><textarea id="observacionesPlaca" rows="3" class="w-full border rounded-lg p-2.5" placeholder="Condición, óxido, deformación, medidas especiales, etc."></textarea></div>
+                    <div class="flex gap-2 pt-2">
+                        <button type="submit" id="btnGuardarPlaca" class="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-lg shadow">💾 Guardar placa</button>
+                        <button type="button" id="btnCancelarEdicionPlaca" onclick="cancelarEdicionPlaca()" class="hidden bg-slate-200 hover:bg-slate-300 px-4 rounded-lg font-semibold">Cancelar</button>
+                    </div>
+                </form>
+            </section>
+            <section class="lg:col-span-7 bg-white rounded-xl shadow-md p-5">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border-b pb-3 mb-4">
+                    <div><h2 class="font-bold text-lg">Placas sobrantes disponibles</h2><p class="text-xs text-slate-500">Consulta retales que pueden aprovecharse antes de comprar material nuevo.</p></div>
+                    <input id="filtroPlacas" oninput="renderPlacas()" type="search" placeholder="🔎 Buscar placa, material o pieza..." class="border rounded-lg p-2.5 text-sm md:w-72">
+                </div>
+                <div class="overflow-x-auto border rounded-lg">
+                    <table class="w-full text-xs text-left min-w-[1050px]">
+                        <thead><tr class="bg-slate-100 text-slate-700 border-b">
+                            <th class="p-2.5">Código</th><th class="p-2.5">Material / espesor</th><th class="p-2.5">Medidas</th><th class="p-2.5">Cantidad</th><th class="p-2.5">Ubicación</th><th class="p-2.5">Piezas asociadas</th><th class="p-2.5">Estado</th><th class="p-2.5">Acciones</th>
+                        </tr></thead>
+                        <tbody id="tablaPlacasBody" class="divide-y"><tr><td colspan="8" class="p-5 text-center text-slate-400">Cargando...</td></tr></tbody>
                     </table>
                 </div>
             </section>
@@ -391,6 +469,49 @@
     </div>
 </div>
 
+
+<!-- MODAL DETALLE DE PIEZA -->
+<div id="modalDetallePieza" class="hidden fixed inset-0 bg-black/75 z-50 p-4 overflow-y-auto">
+    <div class="min-h-full flex items-center justify-center">
+        <div class="bg-white rounded-2xl w-full max-w-5xl p-5 shadow-2xl">
+            <div class="flex items-center justify-between border-b pb-3 mb-4">
+                <div><h3 class="font-bold text-lg">Ficha completa de pieza</h3><p id="detalleSubtitulo" class="text-xs text-slate-500"></p></div>
+                <button onclick="cerrarDetallePieza()" class="text-slate-500 hover:text-slate-700 text-2xl">×</button>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <div id="detalleAdjunto" class="bg-slate-50 border rounded-xl min-h-[280px] max-h-[520px] flex items-center justify-center p-3 text-sm text-slate-400 overflow-auto">Sin archivo adjunto</div>
+                <div class="grid grid-cols-2 gap-3 text-sm">
+                    <div><div class="text-xs text-slate-500">Código</div><div id="detalleCodigo" class="font-mono font-black text-orange-700"></div></div>
+                    <div><div class="text-xs text-slate-500">Nombre</div><div id="detalleNombre" class="font-bold"></div></div>
+                    <div><div class="text-xs text-slate-500">Categoría</div><div id="detalleCategoria"></div></div>
+                    <div><div class="text-xs text-slate-500">Proceso</div><div id="detalleProceso"></div></div>
+                    <div><div class="text-xs text-slate-500">Material</div><div id="detalleMaterial"></div></div>
+                    <div><div class="text-xs text-slate-500">Calibre / espesor</div><div id="detalleCalibre"></div></div>
+                    <div><div class="text-xs text-slate-500">Unidad</div><div id="detalleUnidad"></div></div>
+                    <div><div class="text-xs text-slate-500">Ubicación</div><div id="detalleUbicacion"></div></div>
+                    <div><div class="text-xs text-slate-500">Aplicación</div><div id="detalleAplicacion"></div></div>
+                    <div><div class="text-xs text-slate-500">Proveedor / fabricante</div><div id="detalleProveedor"></div></div>
+                    <div><div class="text-xs text-slate-500">No. de plano</div><div id="detalleNumeroPlano"></div></div>
+                    <div><div class="text-xs text-slate-500">Fecha de registro</div><div id="detalleFechaRegistro"></div></div>
+                    <div><div class="text-xs text-slate-500">Stock actual</div><div id="detalleStock" class="text-2xl font-black"></div></div>
+                    <div><div class="text-xs text-slate-500">Stock mínimo</div><div id="detalleStockMin"></div></div>
+                    <div><div class="text-xs text-slate-500">Stock máximo</div><div id="detalleStockMax"></div></div>
+                    <div class="col-span-2"><div class="text-xs text-slate-500 mb-1">Descripción / observaciones</div><div id="detalleDescripcion" class="bg-slate-50 rounded-lg p-3 min-h-[70px] whitespace-pre-wrap"></div></div>
+                </div>
+            </div>
+            <div class="mt-5 border-t pt-4">
+                <div class="flex flex-col md:flex-row md:items-end gap-3">
+                    <div class="md:w-32"><label class="block text-xs font-semibold mb-1">Cantidad a retirar</label><input id="salidaCantidadDetalle" type="number" min="1" value="1" class="w-full border rounded-lg p-2.5"></div>
+                    <div class="flex-1"><label class="block text-xs font-semibold mb-1">Responsable</label><input id="salidaResponsableDetalle" type="text" class="w-full border rounded-lg p-2.5" placeholder="Nombre del responsable"></div>
+                    <div class="flex-1"><label class="block text-xs font-semibold mb-1">Motivo</label><input id="salidaMotivoDetalle" type="text" class="w-full border rounded-lg p-2.5" placeholder="Consumo, producción, entrega..."></div>
+                    <button id="btnRetirarDetalle" onclick="retirarStockDesdeDetalle()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-4 rounded-lg shadow">📤 Retirar del stock</button>
+                </div>
+                <p class="text-[11px] text-slate-500 mt-2">La salida se registra también en <b>Movimientos</b> para conservar la trazabilidad.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- MODAL ESCÁNER -->
 <div id="modalEscaner" class="hidden fixed inset-0 bg-black/75 z-50 p-4 overflow-y-auto">
     <div class="min-h-full flex items-center justify-center">
@@ -426,10 +547,72 @@ const UPLOAD_PRESET = "zgwlu2e1"; // Preset 'Sin signar' de tu captura
 const ADMIN_PASSWORD = "admin123";
 
 let app, db, auth;
-let piezas = [], solicitudes = [], movimientos = [];
+let piezas = [], solicitudes = [], movimientos = [], placas = [];
 let html5QrCode = null;
-let unsubscribePiezas = null, unsubscribeSolicitudes = null, unsubscribeMovimientos = null;
+let unsubscribePiezas = null, unsubscribeSolicitudes = null, unsubscribeMovimientos = null, unsubscribePlacas = null;
+let piezaDetalleActualId = null;
+let escaneoProcesado = false;
 const $ = id => document.getElementById(id);
+
+// =========================================================
+ // UTILIDADES
+ // =========================================================
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+function fechaAMilisegundos(valor) {
+    if (!valor) return 0;
+    if (typeof valor.toMillis === 'function') return valor.toMillis();
+    if (typeof valor.toDate === 'function') return valor.toDate().getTime();
+    const fecha = new Date(valor);
+    return Number.isNaN(fecha.getTime()) ? 0 : fecha.getTime();
+}
+function formatoFecha(valor) {
+    const ms = fechaAMilisegundos(valor);
+    return ms ? new Date(ms).toLocaleString('es-MX') : 'Reciente';
+}
+function obtenerUrlAdjunto(item) {
+    return item?.archivoUrl || item?.imagenUrl || '';
+}
+function obtenerTipoAdjunto(item) {
+    return String(item?.archivoTipo || '').toLowerCase();
+}
+function esImagen(item) {
+    const tipo = obtenerTipoAdjunto(item);
+    const url = obtenerUrlAdjunto(item).toLowerCase().split('?')[0];
+    return tipo.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/.test(url);
+}
+function esPdf(item) {
+    const tipo = obtenerTipoAdjunto(item);
+    const url = obtenerUrlAdjunto(item).toLowerCase().split('?')[0];
+    return tipo === 'application/pdf' || url.endsWith('.pdf');
+}
+function nombreArchivo(item) {
+    return item?.archivoNombre || (obtenerUrlAdjunto(item).split('/').pop() || 'Archivo adjunto');
+}
+function mostrarAdjuntoEnContenedor(contenedor, item, titulo='Ver archivo') {
+    const url = obtenerUrlAdjunto(item);
+    if (!contenedor) return;
+    if (!url) {
+        contenedor.innerHTML = '<div class="text-sm text-slate-400 text-center p-6">Sin archivo adjunto</div>';
+        return;
+    }
+    if (esImagen(item)) {
+        contenedor.innerHTML = `<div class="w-full text-center"><img src="${escapeHtml(url)}" alt="${escapeHtml(titulo)}" class="max-h-[480px] max-w-full mx-auto rounded-lg object-contain shadow-sm"><a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="inline-block mt-2 text-blue-700 underline text-xs font-semibold">Abrir imagen en nueva pestaña</a></div>`;
+    } else if (esPdf(item)) {
+        contenedor.innerHTML = `<div class="w-full"><iframe src="${escapeHtml(url)}" title="${escapeHtml(titulo)}" class="w-full h-[480px] rounded-lg border bg-white"></iframe><a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="inline-block mt-2 text-blue-700 underline text-xs font-semibold">Abrir PDF en nueva pestaña</a></div>`;
+    } else {
+        contenedor.innerHTML = `<div class="text-center p-8"><div class="text-5xl mb-3">📎</div><div class="font-bold text-slate-700 mb-1">${escapeHtml(nombreArchivo(item))}</div><div class="text-xs text-slate-500 mb-4">Este tipo de archivo se abre mediante enlace.</div><a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="inline-block bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-bold">Abrir archivo</a></div>`;
+    }
+}
+function usuarioActualTexto() {
+    return auth?.currentUser?.email || '';
+}
+function piezaPorId(id) {
+    return piezas.find(p => p.id === id);
+}
 
 // Función para subir archivos a Cloudinary sin servidor
 async function subirACloudinary(archivo) {
@@ -437,7 +620,7 @@ async function subirACloudinary(archivo) {
     formData.append("file", archivo);
     formData.append("upload_preset", UPLOAD_PRESET);
 
-    const respuesta = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/upload`, {
+    const respuesta = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`, {
         method: "POST",
         body: formData
     });
@@ -466,6 +649,7 @@ async function inicializarFirebase() {
                 escucharPiezas();
                 escucharSolicitudes();
                 escucharMovimientos();
+                escucharPlacas();
             } else {
                 $('pantallaLogin').classList.remove('hidden');$('estadoConexion').textContent = "Desconectado";
                 $('estadoConexion').className = "text-xs font-semibold bg-red-100 text-red-700 px-2 py-1 rounded-full";
@@ -473,6 +657,7 @@ async function inicializarFirebase() {
                 if (unsubscribePiezas) unsubscribePiezas();
                 if (unsubscribeSolicitudes) unsubscribeSolicitudes();
                 if (unsubscribeMovimientos) unsubscribeMovimientos();
+                if (unsubscribePlacas) unsubscribePlacas();
             }
         });
     } catch (err) {
@@ -549,11 +734,12 @@ async function registrar() {
 function mostrarSeccion(idDestino) {
     const equivalencias = {
         inventario: 'seccionInventario',
+        placas: 'seccionPlacas',
         solicitudes: 'seccionSolicitudes',
         movimientos: 'seccionMovimientos'
     };
     const idReal = equivalencias[idDestino] || idDestino;
-    const pantallas = ['seccionInventario', 'seccionSolicitudes', 'seccionMovimientos'];
+    const pantallas = ['seccionInventario', 'seccionPlacas', 'seccionSolicitudes', 'seccionMovimientos'];
 
     pantallas.forEach(id => {
         const elemento = document.getElementById(id);
@@ -609,12 +795,29 @@ function escucharMovimientos() {
     });
 }
 
+function escucharPlacas() {
+    if (unsubscribePlacas) unsubscribePlacas();
+    unsubscribePlacas = db.collection('placasSobrantes').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
+        placas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if ($('statPlacas')) {
+            $('statPlacas').textContent = placas
+                .filter(p => String(p.estado || 'Disponible') !== 'Consumida')
+                .reduce((sum, p) => sum + (Number(p.cantidad) || 0), 0);
+        }
+        renderPlacas();
+        actualizarCodigoPlaca();
+    }, error => {
+        console.error('Error leyendo placas sobrantes:', error);
+        if ($('tablaPlacasBody')) $('tablaPlacasBody').innerHTML = '<tr><td colspan="8" class="p-5 text-center text-red-500">No se pudieron cargar las placas.</td></tr>';
+    });
+}
+
 // =========================================================
 // 3) INVENTARIO Y GUARDADO DE PIEZAS CON CLOUDINARY
 // =========================================================
 function actualizarEstadisticas() {
     $('statPiezas').textContent = piezas.length;
-    $('statUnidades').textContent = piezas.reduce((a, p) => a + (Number(p.stockActual) \vert{}\vert{} 0), 0);$('statBajoMin').textContent = piezas.filter(p => Number(p.stockActual) > 0 && Number(p.stockActual) <= Number(p.stockMin)).length;
+    $('statUnidades').textContent = piezas.reduce((a, p) => a + (Number(p.stockActual) || 0), 0);$('statBajoMin').textContent = piezas.filter(p => Number(p.stockActual) > 0 && Number(p.stockActual) <= Number(p.stockMin)).length;
     $('statSinStock').textContent = piezas.filter(p => Number(p.stockActual) === 0).length;
 }
 
@@ -653,11 +856,18 @@ async function guardarPieza(e) {
 
         // Subir archivo a Cloudinary si se seleccionó uno
         let imagenUrl = $('imagenUrlActual').value;
+        let archivoUrl = imagenUrl;
+        let archivoNombre = id ? (piezas.find(x => x.id === id)?.archivoNombre || '') : '';
+        let archivoTipo = id ? (piezas.find(x => x.id === id)?.archivoTipo || '') : '';
         const inputArchivo = $('archivoPieza');
-        
+
         if (inputArchivo.files && inputArchivo.files[0]) {
             btn.textContent = "☁️ Subiendo archivo...";
-            imagenUrl = await subirACloudinary(inputArchivo.files[0]);
+            const archivo = inputArchivo.files[0];
+            archivoNombre = archivo.name;
+            archivoTipo = archivo.type || '';
+            archivoUrl = await subirACloudinary(archivo);
+            imagenUrl = archivoUrl;
         }
 
         btn.textContent = "💾 Guardar en Firebase...";
@@ -674,11 +884,14 @@ async function guardarPieza(e) {
             aplicacion: $('aplicacion').value,
             proveedor: $('proveedor').value,
             numeroPlano: $('numeroPlano').value,
-            stockActual: Number($('stockActual').value),
-            stockMin: Number($('stockMin').value),
-            stockMax: Number($('stockMax').value),
-            descripcion: $('descripcion').value,
-            imagenUrl: imagenUrl
+            stockActual: Math.max(0, Number($('stockActual').value) || 0),
+            stockMin: Math.max(0, Number($('stockMin').value) || 0),
+            stockMax: Math.max(1, Number($('stockMax').value) || 1),
+            descripcion: $('descripcion').value.trim(),
+            imagenUrl: imagenUrl,
+            archivoUrl: archivoUrl,
+            archivoNombre: archivoNombre,
+            archivoTipo: archivoTipo
         };
 
         if (id) {
@@ -720,9 +933,10 @@ function editarPieza(id) {
     $('descripcion').value = p.descripcion || "";
 
     // Manejar URL existente del archivo
-    $('imagenUrlActual').value = p.imagenUrl || "";
-    if (p.imagenUrl) {
-        $('enlaceArchivoActual').href = p.imagenUrl;
+    $('imagenUrlActual').value = obtenerUrlAdjunto(p);
+    if (obtenerUrlAdjunto(p)) {
+        $('enlaceArchivoActual').href = obtenerUrlAdjunto(p);
+        $('enlaceArchivoActual').textContent = esImagen(p) ? "Ver imagen actual" : "Ver archivo actual";
         $('vistaPreviaArchivo').classList.remove('hidden');
     } else {
         $('vistaPreviaArchivo').classList.add('hidden');
@@ -758,7 +972,108 @@ function eliminarPieza(id) {
 }
 
 // =========================================================
-// 4) VISUALIZADOR QR
+ // 4) FICHA DE PIEZA / SALIDA RÁPIDA
+ // =========================================================
+function abrirDetallePieza(id, enfocarSalida=false) {
+    const p = piezaPorId(id);
+    if (!p) return;
+
+    piezaDetalleActualId = id;
+    $('detalleSubtitulo').textContent = `${p.codigoPieza || ''} · ${p.nombre || ''}`;
+    $('detalleCodigo').textContent = p.codigoPieza || '-';
+    $('detalleNombre').textContent = p.nombre || '-';
+    $('detalleCategoria').textContent = p.categoria || '-';
+    $('detalleProceso').textContent = p.proceso || '-';
+    $('detalleMaterial').textContent = p.material || '-';
+    $('detalleCalibre').textContent = p.calibre || '-';
+    $('detalleUnidad').textContent = p.unidad || '-';
+    $('detalleUbicacion').textContent = p.ubicacion || '-';
+    $('detalleAplicacion').textContent = p.aplicacion || '-';
+    $('detalleProveedor').textContent = p.proveedor || '-';
+    $('detalleNumeroPlano').textContent = p.numeroPlano || '-';
+    $('detalleFechaRegistro').textContent = formatoFecha(p.fechaRegistro);
+    $('detalleStock').textContent = `${Number(p.stockActual) || 0} ${p.unidad || 'pieza(s)'}`;
+    $('detalleStockMin').textContent = Number(p.stockMin) || 0;
+    $('detalleStockMax').textContent = Number(p.stockMax) || 0;
+    $('detalleDescripcion').textContent = p.descripcion || 'Sin observaciones.';
+    mostrarAdjuntoEnContenedor($('detalleAdjunto'), p, `Archivo de ${p.codigoPieza}`);
+
+    $('salidaCantidadDetalle').value = 1;
+    $('salidaCantidadDetalle').max = Math.max(1, Number(p.stockActual) || 1);
+    $('salidaResponsableDetalle').value = usuarioActualTexto();
+    $('salidaMotivoDetalle').value = '';
+    $('modalDetallePieza').classList.remove('hidden');
+
+    if (enfocarSalida) {
+        setTimeout(() => {
+            $('salidaCantidadDetalle').focus();
+            $('salidaCantidadDetalle').select();
+        }, 100);
+    }
+}
+function cerrarDetallePieza() {
+    $('modalDetallePieza').classList.add('hidden');
+    piezaDetalleActualId = null;
+}
+async function retirarStockDesdeDetalle() {
+    if (!piezaDetalleActualId) return;
+
+    const cantidad = Number($('salidaCantidadDetalle').value);
+    const responsable = $('salidaResponsableDetalle').value.trim();
+    const motivo = $('salidaMotivoDetalle').value.trim();
+
+    if (!Number.isInteger(cantidad) || cantidad <= 0) return alert('Ingresa una cantidad válida mayor a 0.');
+    if (!responsable) return alert('Ingresa el nombre del responsable.');
+
+    const btn = $('btnRetirarDetalle');
+    btn.disabled = true;
+    btn.textContent = '⏳ Procesando...';
+
+    try {
+        const refPieza = db.collection('piezas').doc(piezaDetalleActualId);
+        let stockNuevo = null;
+
+        await db.runTransaction(async transaction => {
+            const snap = await transaction.get(refPieza);
+            if (!snap.exists) throw new Error('La pieza ya no existe.');
+
+            const actual = Number(snap.data().stockActual) || 0;
+            if (actual < cantidad) throw new Error(`Stock insuficiente. Disponible: ${actual}. Solicitado: ${cantidad}.`);
+
+            stockNuevo = actual - cantidad;
+            transaction.update(refPieza, {
+                stockActual: stockNuevo,
+                actualizadoEn: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            const movRef = db.collection('movimientos').doc();
+            transaction.set(movRef, {
+                piezaId: snap.id,
+                piezaCodigo: snap.data().codigoPieza || '',
+                piezaNombre: snap.data().nombre || '',
+                tipo: 'SALIDA',
+                cantidad,
+                stockAnterior: actual,
+                stockResultante: stockNuevo,
+                responsable,
+                motivo: motivo || 'Salida rápida desde ficha / escáner',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        });
+
+        alert(`Salida registrada. Nuevo stock: ${stockNuevo}.`);
+        abrirDetallePieza(piezaDetalleActualId);
+    } catch (err) {
+        console.error('Error en salida rápida:', err);
+        alert(err.message || 'No se pudo registrar la salida.');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '📤 Retirar del stock';
+    }
+}
+
+// =========================================================
+// 4.5) VISUALIZADOR QR
 // =========================================================
 function verQR(id) {
     const p = piezas.find(x => x.id === id);
@@ -803,38 +1118,21 @@ function imprimirEtiqueta() {
 }
 
 // =========================================================
-// 5) FILTROS Y RENDERIZADO DE INVENTARIO
-// =========================================================
-function poblarSelectFiltros() {
-    const selectMaterial = $('filtroMaterial');
-    const selectCalibre = $('filtroCalibre');
-    if (!selectMaterial || !selectCalibre) return;
-
-    const matSeleccionado = selectMaterial.value;
-    const calSeleccionado = selectCalibre.value;
-
-    const materialesUnicos = [...new Set(piezas.map(p => p.material ? String(p.material).trim() : '').filter(m => m !== ''))].sort();
-    const calibresUnicos = [...new Set(piezas.map(p => p.calibre ? String(p.calibre).trim() : '').filter(c => c !== ''))].sort();
-
-    selectMaterial.innerHTML = '<option value="">Todos los materiales</option>' + materialesUnicos.map(mat => `<option value="${mat}">${mat}</option>`).join('');
-    selectMaterial.value = matSeleccionado;
-
-    selectCalibre.innerHTML = '<option value="">Todos los calibres</option>' + calibresUnicos.map(cal => `<option value="${cal}">${cal}</option>`).join('');
-    selectCalibre.value = calSeleccionado;
-}
-
-function aplicarFiltros() {
+ // 5) FILTROS, ORDEN Y RENDERIZADO DE INVENTARIO
+ // =========================================================
+function obtenerPiezasFiltradasOrdenadas() {
     const busqueda = $('filtroNombre')?.value.toLowerCase().trim() || '';
     const matFiltro = $('filtroMaterial')?.value || '';
     const calFiltro = $('filtroCalibre')?.value || '';
     const catFiltro = $('filtroCategoria')?.value || '';
     const estFiltro = $('filtroEstadoStock')?.value || '';
+    const orden = $('ordenInventario')?.value || 'fecha_desc';
 
     const piezasFiltradas = piezas.filter(p => {
-        const nombrePieza = (p.nombre || '').toLowerCase();
-        const codigoPieza = (p.codigoPieza || p.id || '').toLowerCase();
+        const texto = [p.nombre, p.codigoPieza, p.material, p.calibre, p.ubicacion, p.aplicacion, p.numeroPlano]
+            .map(x => String(x || '').toLowerCase()).join(' ');
 
-        const matchTexto = !busqueda || nombrePieza.includes(busqueda) || codigoPieza.includes(busqueda);
+        const matchTexto = !busqueda || texto.includes(busqueda);
         const matchMat = !matFiltro || String(p.material || '').trim() === matFiltro;
         const matchCal = !calFiltro || String(p.calibre || '').trim() === calFiltro;
         const matchCat = !catFiltro || p.categoria === catFiltro;
@@ -843,120 +1141,345 @@ function aplicarFiltros() {
         if (Number(p.stockActual) <= 0) estado = 'CERO';
         else if (Number(p.stockActual) <= Number(p.stockMin)) estado = 'BAJO';
 
-        const matchEst = !estFiltro || estado === estFiltro;
-        return matchTexto && matchMat && matchCal && matchCat && matchEst;
+        return matchTexto && matchMat && matchCal && matchCat && (!estFiltro || estado === estFiltro);
     });
 
-    renderTablaPiezas(piezasFiltradas);
+    piezasFiltradas.sort((a, b) => {
+        switch (orden) {
+            case 'codigo_asc':
+                return String(a.codigoPieza || '').localeCompare(String(b.codigoPieza || ''), 'es', {numeric: true, sensitivity: 'base'});
+            case 'codigo_desc':
+                return String(b.codigoPieza || '').localeCompare(String(a.codigoPieza || ''), 'es', {numeric: true, sensitivity: 'base'});
+            case 'nombre_asc':
+                return String(a.nombre || '').localeCompare(String(b.nombre || ''), 'es', {sensitivity: 'base'});
+            case 'nombre_desc':
+                return String(b.nombre || '').localeCompare(String(a.nombre || ''), 'es', {sensitivity: 'base'});
+            case 'stock_asc':
+                return (Number(a.stockActual) || 0) - (Number(b.stockActual) || 0);
+            case 'stock_desc':
+                return (Number(b.stockActual) || 0) - (Number(a.stockActual) || 0);
+            case 'fecha_asc':
+                return fechaAMilisegundos(a.fechaRegistro) - fechaAMilisegundos(b.fechaRegistro);
+            case 'fecha_desc':
+            default:
+                return fechaAMilisegundos(b.fechaRegistro) - fechaAMilisegundos(a.fechaRegistro);
+        }
+    });
+    return piezasFiltradas;
 }
 
+function aplicarFiltros() {
+    renderTablaPiezas(obtenerPiezasFiltradasOrdenadas());
+}
+function obtenerEstadoStock(p) {
+    if ((Number(p.stockActual) || 0) <= 0) return 'CERO';
+    if ((Number(p.stockActual) || 0) <= (Number(p.stockMin) || 0)) return 'BAJO';
+    return 'OK';
+}
 function renderTablaPiezas(piezasParaMostrar) {
     const tbody = $('tablaPiezasBody');
     tbody.innerHTML = '';
-    
-    if($('textoResultados'))$('textoResultados').textContent = `${piezasParaMostrar.length} resultados`;
+    if ($('textoResultados')) $('textoResultados').textContent = `${piezasParaMostrar.length} resultados`;
 
-    if(piezasParaMostrar.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="p-5 text-center text-slate-500">No se encontraron piezas</td></tr>';
+    if (!piezasParaMostrar.length) {
+        tbody.innerHTML = '<tr><td colspan="8" class="p-5 text-center text-slate-500">No se encontraron piezas</td></tr>';
         return;
     }
 
     piezasParaMostrar.forEach(p => {
-        let estadoStr = `<span class="bg-emerald-100 text-emerald-800 px-2 py-1 rounded text-[10px] font-bold">OK</span>`;
-        if (Number(p.stockActual) === 0) estadoStr = `<span class="bg-red-100 text-red-800 px-2 py-1 rounded text-[10px] font-bold">SIN STOCK</span>`;
-        else if (Number(p.stockActual) <= Number(p.stockMin)) estadoStr = `<span class="bg-amber-100 text-amber-800 px-2 py-1 rounded text-[10px] font-bold">BAJO</span>`;
+        const estado = obtenerEstadoStock(p);
+        const estadoStr = estado === 'OK'
+            ? '<span class="bg-emerald-100 text-emerald-800 px-2 py-1 rounded text-[10px] font-bold">OK</span>'
+            : estado === 'CERO'
+                ? '<span class="bg-red-100 text-red-800 px-2 py-1 rounded text-[10px] font-bold">SIN STOCK</span>'
+                : '<span class="bg-amber-100 text-amber-800 px-2 py-1 rounded text-[10px] font-bold">BAJO</span>';
 
-        // Botón de adjunto si existe URL de Cloudinary
-        const botonAdjunto = p.imagenUrl ? `<a href="${p.imagenUrl}" target="_blank" class="bg-purple-100 hover:bg-purple-200 text-purple-800 px-2 py-1 rounded font-bold" title="Ver foto o plano adjunto">📁 Adjunto</a>` : '';
+        const url = obtenerUrlAdjunto(p);
+        const archivoCell = url
+            ? (esImagen(p)
+                ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" title="Abrir imagen"><img src="${escapeHtml(url)}" class="w-10 h-10 object-cover rounded border mx-auto" alt="Vista previa"></a>`
+                : `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="text-purple-700 hover:underline font-bold">📎 Ver</a>`)
+            : '<span class="text-slate-300">—</span>';
 
         tbody.innerHTML += `
             <tr class="hover:bg-slate-50 border-b">
-                <td class="p-2.5 font-mono font-bold text-orange-700">${p.codigoPieza}</td>
-                <td class="p-2.5 font-semibold">${p.nombre}</td>
-                <td class="p-2.5">${p.material || '-'} <span class="text-xs text-slate-400">(${p.calibre || '-'})</span></td>
-                <td class="p-2.5">${p.ubicacion || '-'}</td>
-                <td class="p-2.5 text-center font-bold">${p.stockActual}</td>
+                <td class="p-2.5 font-mono font-bold text-orange-700">${escapeHtml(p.codigoPieza)}</td>
+                <td class="p-2.5 font-semibold">${escapeHtml(p.nombre)}</td>
+                <td class="p-2.5 text-center">${archivoCell}</td>
+                <td class="p-2.5">${escapeHtml(p.material || '-')} <span class="text-xs text-slate-400">(${escapeHtml(p.calibre || '-')})</span></td>
+                <td class="p-2.5">${escapeHtml(p.ubicacion || '-')}</td>
+                <td class="p-2.5 text-center font-bold">${Number(p.stockActual) || 0}</td>
                 <td class="p-2.5">${estadoStr}</td>
-                <td class="p-2.5 text-center flex justify-center gap-1">
-                    ${botonAdjunto}
-                    <button onclick="verQR('${p.id}')" class="bg-orange-100 hover:bg-orange-200 text-orange-800 px-2 py-1 rounded font-bold">🏷️ QR</button>
-                    <button onclick="editarPieza('${p.id}')" class="bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded font-bold">Editar</button>
-                    <button onclick="eliminarPieza('${p.id}')" class="bg-red-100 hover:bg-red-200 text-red-800 px-2 py-1 rounded font-bold">Borrar</button>
+                <td class="p-2.5">
+                    <div class="flex flex-wrap justify-center gap-1">
+                        <button onclick="abrirDetallePieza('${p.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-800 px-2 py-1 rounded font-bold">👁️ Ver</button>
+                        <button onclick="abrirDetallePieza('${p.id}', true)" class="bg-red-100 hover:bg-red-200 text-red-800 px-2 py-1 rounded font-bold">📤 Salida</button>
+                        <button onclick="verQR('${p.id}')" class="bg-orange-100 hover:bg-orange-200 text-orange-800 px-2 py-1 rounded font-bold">🏷️ QR</button>
+                        <button onclick="editarPieza('${p.id}')" class="bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded font-bold">Editar</button>
+                        <button onclick="eliminarPieza('${p.id}')" class="bg-red-100 hover:bg-red-200 text-red-800 px-2 py-1 rounded font-bold">Borrar</button>
+                    </div>
                 </td>
-            </tr>
-        `;
+            </tr>`;
     });
 }
 
 function limpiarFiltros() {
-    $('filtroNombre').value = "";
-    $('filtroMaterial').value = "";
-    $('filtroCalibre').value = "";
-    $('filtroCategoria').value = "";
-    $('filtroEstadoStock').value = "";
+    $('filtroNombre').value = '';
+    $('filtroMaterial').value = '';
+    $('filtroCalibre').value = '';
+    $('filtroCategoria').value = '';
+    $('filtroEstadoStock').value = '';
+    $('ordenInventario').value = 'fecha_desc';
     aplicarFiltros();
 }
 
 function actualizarSelectPiezas() {
     const selS = $('solicitudPieza');
     const selM = $('movPieza');
-    const options = `<option value="">Seleccione una pieza...</option>` + 
-        piezas.map(p => `<option value="${p.id}">${p.codigoPieza} - ${p.nombre}</option>`).join('');
-    selS.innerHTML = options;
-    selM.innerHTML = options;
+    const piezasOrdenadas = [...piezas].sort((a,b) =>
+        String(a.codigoPieza || '').localeCompare(String(b.codigoPieza || ''), 'es', {numeric:true, sensitivity:'base'})
+    );
+    const options = '<option value="">Seleccione una pieza...</option>' +
+        piezasOrdenadas.map(p => `<option value="${p.id}">${escapeHtml(p.codigoPieza)} - ${escapeHtml(p.nombre)}</option>`).join('');
+    if (selS) selS.innerHTML = options;
+    if (selM) selM.innerHTML = options;
 }
 
 // =========================================================
-// 6) SOLICITUDES
+ // 6) PLACAS SOBRANTES
+ // =========================================================
+function actualizarCodigoPlaca() {
+    if (!$('editPlacaId') || $('editPlacaId').value) return;
+    const numeros = placas.map(p => {
+        const match = String(p.codigoPlaca || '').match(/(\d+)$/);
+        return match ? Number(match[1]) : 0;
+    }).filter(Number.isFinite);
+    const siguiente = numeros.length ? Math.max(...numeros) + 1 : 1;
+    $('codigoPlaca').value = `PLACA-${String(siguiente).padStart(3, '0')}`;
+}
+async function guardarPlaca(e) {
+    e.preventDefault();
+    const id = $('editPlacaId').value.trim();
+    const btn = $('btnGuardarPlaca');
+    btn.disabled = true;
+    try {
+        const codigo = $('codigoPlaca').value.trim().toUpperCase();
+        if (!codigo) throw new Error('Ingresa un código de placa.');
+        if (placas.some(p => p.id !== id && String(p.codigoPlaca || '').toUpperCase() === codigo)) {
+            throw new Error(`El código de placa "${codigo}" ya existe.`);
+        }
+
+        const anterior = id ? placas.find(x => x.id === id) : null;
+        let archivoUrl = $('archivoPlacaUrlActual').value;
+        let archivoNombre = anterior?.archivoNombre || '';
+        let archivoTipo = anterior?.archivoTipo || '';
+        const input = $('archivoPlaca');
+
+        if (input.files && input.files[0]) {
+            btn.textContent = '☁️ Subiendo archivo...';
+            const archivo = input.files[0];
+            archivoNombre = archivo.name;
+            archivoTipo = archivo.type || '';
+            archivoUrl = await subirACloudinary(archivo);
+        }
+
+        btn.textContent = '💾 Guardando...';
+        const data = {
+            codigoPlaca: codigo,
+            estado: $('estadoPlaca').value,
+            material: $('materialPlaca').value.trim(),
+            calibre: $('calibrePlaca').value.trim(),
+            largo: Number($('largoPlaca').value) || 0,
+            ancho: Number($('anchoPlaca').value) || 0,
+            cantidad: Math.max(1, Number($('cantidadPlaca').value) || 1),
+            ubicacion: $('ubicacionPlaca').value.trim(),
+            origen: $('origenPlaca').value.trim(),
+            piezasAprovechables: $('piezasAprovechables').value.trim(),
+            observaciones: $('observacionesPlaca').value.trim(),
+            archivoUrl, archivoNombre, archivoTipo
+        };
+
+        if (id) {
+            data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+            await db.collection('placasSobrantes').doc(id).update(data);
+            alert('Placa actualizada correctamente.');
+        } else {
+            data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+            await db.collection('placasSobrantes').add(data);
+            alert('Placa sobrante registrada correctamente.');
+        }
+        cancelarEdicionPlaca();
+    } catch (err) {
+        console.error('Error guardando placa:', err);
+        alert('Error al guardar la placa: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '💾 Guardar placa';
+    }
+}
+function renderPlacas() {
+    const tbody = $('tablaPlacasBody');
+    if (!tbody) return;
+    const busqueda = $('filtroPlacas')?.value.toLowerCase().trim() || '';
+    const filtradas = placas.filter(p => {
+        const texto = [p.codigoPlaca,p.material,p.calibre,p.ubicacion,p.origen,p.piezasAprovechables,p.observaciones]
+            .map(x => String(x || '').toLowerCase()).join(' ');
+        return !busqueda || texto.includes(busqueda);
+    });
+
+    tbody.innerHTML = '';
+    if (!filtradas.length) {
+        tbody.innerHTML = '<tr><td colspan="8" class="p-5 text-center text-slate-500">No hay placas sobrantes registradas.</td></tr>';
+        return;
+    }
+
+    filtradas.forEach(p => {
+        const estado = String(p.estado || 'Disponible');
+        const estadoClass = estado === 'Disponible' ? 'bg-emerald-100 text-emerald-800' : estado === 'Reservada' ? 'bg-amber-100 text-amber-800' : 'bg-slate-200 text-slate-700';
+        tbody.innerHTML += `
+            <tr class="hover:bg-slate-50 border-b">
+                <td class="p-2.5 font-mono font-bold text-orange-700">${escapeHtml(p.codigoPlaca)}</td>
+                <td class="p-2.5">${escapeHtml(p.material || '-')} <span class="text-slate-400">(${escapeHtml(p.calibre || '-')})</span></td>
+                <td class="p-2.5">${Number(p.largo)||0} × ${Number(p.ancho)||0} mm</td>
+                <td class="p-2.5 font-bold">${Number(p.cantidad)||0}</td>
+                <td class="p-2.5">${escapeHtml(p.ubicacion || '-')}</td>
+                <td class="p-2.5 max-w-[260px]">${escapeHtml(p.piezasAprovechables || '-')}</td>
+                <td class="p-2.5"><span class="${estadoClass} px-2 py-1 rounded text-[10px] font-bold">${escapeHtml(estado)}</span></td>
+                <td class="p-2.5">
+                    <div class="flex items-center gap-1">
+                        ${obtenerUrlAdjunto(p) ? `<a href="${escapeHtml(obtenerUrlAdjunto(p))}" target="_blank" rel="noopener noreferrer" class="bg-purple-100 text-purple-800 px-2 py-1 rounded font-bold" title="Ver adjunto">📎</a>` : ''}
+                        <button onclick="editarPlaca('${p.id}')" class="bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded font-bold">Editar</button>
+                        <button onclick="eliminarPlaca('${p.id}')" class="bg-red-100 hover:bg-red-200 text-red-800 px-2 py-1 rounded font-bold">Borrar</button>
+                    </div>
+                </td>
+            </tr>`;
+    });
+}
+function editarPlaca(id) {
+    const p = placas.find(x => x.id === id);
+    if (!p) return;
+    $('editPlacaId').value = p.id;
+    $('codigoPlaca').value = p.codigoPlaca || '';
+    $('estadoPlaca').value = p.estado || 'Disponible';
+    $('materialPlaca').value = p.material || '';
+    $('calibrePlaca').value = p.calibre || '';
+    $('largoPlaca').value = p.largo || '';
+    $('anchoPlaca').value = p.ancho || '';
+    $('cantidadPlaca').value = p.cantidad || 1;
+    $('ubicacionPlaca').value = p.ubicacion || '';
+    $('origenPlaca').value = p.origen || '';
+    $('piezasAprovechables').value = p.piezasAprovechables || '';
+    $('observacionesPlaca').value = p.observaciones || '';
+    $('archivoPlacaUrlActual').value = obtenerUrlAdjunto(p);
+    if (obtenerUrlAdjunto(p)) {
+        $('enlaceArchivoPlacaActual').href = obtenerUrlAdjunto(p);
+        $('vistaArchivoPlaca').classList.remove('hidden');
+    } else $('vistaArchivoPlaca').classList.add('hidden');
+
+    $('tituloPlaca').textContent = 'Editar placa: ' + p.codigoPlaca;
+    $('estadoEdicionPlaca').classList.remove('hidden');
+    $('btnCancelarEdicionPlaca').classList.remove('hidden');
+    $('btnGuardarPlaca').textContent = '💾 Actualizar placa';
+    mostrarSeccion('seccionPlacas');
+    window.scrollTo({top: 0, behavior: 'smooth'});
+}
+function cancelarEdicionPlaca() {
+    $('formPlaca').reset();
+    $('editPlacaId').value = '';
+    $('archivoPlacaUrlActual').value = '';
+    $('archivoPlaca').value = '';
+    $('vistaArchivoPlaca').classList.add('hidden');
+    $('tituloPlaca').textContent = 'Registrar placa sobrante';
+    $('estadoEdicionPlaca').classList.add('hidden');
+    $('btnCancelarEdicionPlaca').classList.add('hidden');
+    $('btnGuardarPlaca').textContent = '💾 Guardar placa';
+    actualizarCodigoPlaca();
+}
+function eliminarPlaca(id) {
+    const pwd = prompt('ACCESO RESTRINGIDO\nIngrese la contraseña para eliminar la placa:');
+    if (pwd !== ADMIN_PASSWORD) {
+        if (pwd !== null) alert('Contraseña incorrecta.');
+        return;
+    }
+    if (!confirm('¿Seguro que deseas eliminar esta placa sobrante?')) return;
+    db.collection('placasSobrantes').doc(id).delete()
+        .then(() => alert('Placa eliminada correctamente.'))
+        .catch(err => alert('Error al eliminar: ' + err.message));
+}
+
+// =========================================================
+// 6.5) SOLICITUDES
 // =========================================================
 async function guardarSolicitud(e) {
     e.preventDefault();
     const id = $('editSolicitudId').value;
-    const p = piezas.find(x => x.id === $('solicitudPieza').value);
-    if (!p) return alert("Por favor selecciona una pieza válida.");
+    const p = piezaPorId($('solicitudPieza').value);
+    if (!p) return alert('Por favor selecciona una pieza válida.');
 
     const nuevoEstado = $('solicitudEstado').value;
     const cantidad = Number($('solicitudCantidad').value);
     const solicitudPrevia = solicitudes.find(x => x.id === id);
     const estadoAnterior = solicitudPrevia ? solicitudPrevia.estado : '';
 
+    if (!Number.isInteger(cantidad) || cantidad <= 0) return alert('La cantidad debe ser un número entero mayor a 0.');
+
     const data = {
-        piezaId: p.id, piezaCodigo: p.codigoPieza, piezaNombre: p.nombre,
-        cantidad: cantidad, prioridad: $('solicitudPrioridad').value,
-        solicitante: $('solicitudSolicitante').value, estado: nuevoEstado,
-        motivo: $('solicitudMotivo').value
+        piezaId: p.id,
+        piezaCodigo: p.codigoPieza,
+        piezaNombre: p.nombre,
+        cantidad,
+        prioridad: $('solicitudPrioridad').value,
+        solicitante: $('solicitudSolicitante').value.trim(),
+        estado: nuevoEstado,
+        motivo: $('solicitudMotivo').value.trim()
     };
+
+    if (!data.solicitante) return alert('Ingresa quién solicita.');
 
     try {
         if (nuevoEstado === 'Completada' && estadoAnterior !== 'Completada') {
-            const stockActual = Number(p.stockActual) || 0;
-            const nuevoStock = stockActual - cantidad;
+            const refPieza = db.collection('piezas').doc(p.id);
+            await db.runTransaction(async transaction => {
+                const snap = await transaction.get(refPieza);
+                if (!snap.exists) throw new Error('La pieza ya no existe.');
+                const stockActual = Number(snap.data().stockActual) || 0;
+                const nuevoStock = stockActual - cantidad;
+                if (nuevoStock < 0) throw new Error(`No hay stock suficiente. Disponible: ${stockActual}; solicitado: ${cantidad}.`);
 
-            if (nuevoStock < 0) {
-                if (!confirm(`El stock actual (${stockActual}) es menor que la cantidad solicitada (${cantidad}). ¿Deseas completarla de todos modos?`)) return;
-            }
+                transaction.update(refPieza, {
+                    stockActual: nuevoStock,
+                    actualizadoEn: firebase.firestore.FieldValue.serverTimestamp()
+                });
 
-            await db.collection('piezas').doc(p.id).update({ stockActual: nuevoStock });
-            await db.collection('movimientos').add({
-                piezaId: p.id, piezaCodigo: p.codigoPieza, piezaNombre: p.nombre,
-                tipo: 'SALIDA', cantidad: cantidad, stockResultante: nuevoStock,
-                responsable: $('solicitudSolicitante').value,
-                motivo: `Solicitud completada: ${$('solicitudMotivo').value || 'Despacho de almacén'}`,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                const movRef = db.collection('movimientos').doc();
+                transaction.set(movRef, {
+                    piezaId: p.id,
+                    piezaCodigo: p.codigoPieza,
+                    piezaNombre: p.nombre,
+                    tipo: 'SALIDA',
+                    cantidad,
+                    stockAnterior: stockActual,
+                    stockResultante: nuevoStock,
+                    responsable: data.solicitante,
+                    motivo: `Solicitud completada: ${data.motivo || 'Despacho de almacén'}`,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
             });
         }
 
-        if(id) {
+        if (id) {
             await db.collection('solicitudes').doc(id).update(data);
-            alert("Solicitud actualizada correctamente.");
+            alert('Solicitud actualizada correctamente.');
         } else {
             data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
             await db.collection('solicitudes').add(data);
-            alert("Solicitud registrada correctamente.");
+            alert('Solicitud registrada correctamente.');
         }
         cancelarEdicionSolicitud();
-    } catch(err) {
-        alert("Error al guardar la solicitud: " + err.message);
+    } catch (err) {
+        console.error(err);
+        alert('Error al guardar la solicitud: ' + err.message);
     }
 }
 
@@ -1021,36 +1544,76 @@ function renderSolicitudes() {
 // =========================================================
 // 7) MOVIMIENTOS Y ESCÁNER QR
 // =========================================================
-function abrirMovimiento() { $('modalMovimiento').classList.remove('hidden'); }
+function abrirMovimiento() {
+    $('modalMovimiento').classList.remove('hidden');
+    if (!$('movResponsable').value) $('movResponsable').value = usuarioActualTexto();
+}
 function cerrarMovimiento() { $('modalMovimiento').classList.add('hidden'); }
 
 async function guardarMovimiento(e) {
     e.preventDefault();
+
     const pId = $('movPieza').value;
     const tipo = $('movTipo').value;
     const cantidad = Number($('movCantidad').value);
-    
-    const p = piezas.find(x => x.id === pId);
-    let nuevoStock = Number(p.stockActual);
-    
-    if (tipo === "ENTRADA") nuevoStock += cantidad;
-    else if (tipo === "SALIDA") nuevoStock -= cantidad;
-    else if (tipo === "AJUSTE") nuevoStock = cantidad;
+    const responsable = $('movResponsable').value.trim();
+    const motivo = $('movMotivo').value.trim();
 
-    if (nuevoStock < 0) return alert("El stock no puede ser negativo.");
+    if (!pId) return alert('Selecciona una pieza.');
+    if (!Number.isInteger(cantidad) || cantidad <= 0) return alert('Ingresa una cantidad válida mayor a 0.');
+    if (!responsable) return alert('Ingresa el responsable.');
+
+    const p = piezaPorId(pId);
+    if (!p) return alert('La pieza seleccionada ya no existe.');
 
     try {
-        await db.collection('piezas').doc(pId).update({ stockActual: nuevoStock });
-        await db.collection('movimientos').add({
-            piezaId: p.id, piezaCodigo: p.codigoPieza, piezaNombre: p.nombre,
-            tipo: tipo, cantidad: cantidad, stockResultante: nuevoStock,
-            responsable: $('movResponsable').value, motivo:$('movMotivo').value,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        const refPieza = db.collection('piezas').doc(pId);
+        let stockNuevo = null;
+
+        await db.runTransaction(async transaction => {
+            const snap = await transaction.get(refPieza);
+            if (!snap.exists) throw new Error('La pieza ya no existe.');
+
+            const actual = Number(snap.data().stockActual) || 0;
+
+            if (tipo === 'ENTRADA') stockNuevo = actual + cantidad;
+            else if (tipo === 'SALIDA') {
+                stockNuevo = actual - cantidad;
+                if (stockNuevo < 0) throw new Error(`Stock insuficiente. Disponible: ${actual}.`);
+            } else if (tipo === 'AJUSTE') {
+                stockNuevo = cantidad;
+            } else {
+                throw new Error('Tipo de movimiento no válido.');
+            }
+
+            transaction.update(refPieza, {
+                stockActual: stockNuevo,
+                actualizadoEn: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            const movRef = db.collection('movimientos').doc();
+            transaction.set(movRef, {
+                piezaId: p.id,
+                piezaCodigo: snap.data().codigoPieza || p.codigoPieza,
+                piezaNombre: snap.data().nombre || p.nombre,
+                tipo,
+                cantidad,
+                stockAnterior: actual,
+                stockResultante: stockNuevo,
+                responsable,
+                motivo,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
         });
-        alert("Movimiento guardado.");
+
+        alert(`Movimiento guardado. Nuevo stock: ${stockNuevo}.`);
         $('modalMovimiento').classList.add('hidden');
         e.target.reset();
-    } catch(err) { alert("Error: " + err.message); }
+        $('movResponsable').value = usuarioActualTexto();
+    } catch (err) {
+        console.error(err);
+        alert('Error: ' + err.message);
+    }
 }
 
 function renderMovimientos() {
@@ -1079,18 +1642,11 @@ function renderMovimientos() {
 async function abrirEscaner() {
     const modal = $('modalEscaner');
     const reader = $('reader');
-
-    if (!modal || !reader) {
-        alert('No se encontró el módulo del escáner en la página.');
-        return;
-    }
-
-    if (typeof Html5Qrcode === 'undefined') {
-        alert('No se pudo cargar la librería del escáner QR.');
-        return;
-    }
+    if (!modal || !reader) return alert('No se encontró el módulo del escáner en la página.');
+    if (typeof Html5Qrcode === 'undefined') return alert('No se pudo cargar la librería del escáner QR.');
 
     modal.classList.remove('hidden');
+    escaneoProcesado = false;
 
     try {
         if (!html5QrCode) html5QrCode = new Html5Qrcode('reader');
@@ -1099,26 +1655,32 @@ async function abrirEscaner() {
         reader.innerHTML = 'Iniciando cámara...';
 
         await html5QrCode.start(
-            { facingMode: 'environment' },
-            { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
-            (decodedText) => {
-                const codigo = String(decodedText || '').trim().toUpperCase();
-                $('filtroNombre').value = codigo;
-                aplicarFiltros();
+            {facingMode: 'environment'},
+            {fps: 10, qrbox: {width: 250, height: 250}, aspectRatio: 1.0},
+            async decodedText => {
+                if (escaneoProcesado) return;
+                escaneoProcesado = true;
 
+                const codigo = String(decodedText || '').trim().toUpperCase();
                 const piezaEncontrada = piezas.find(p => String(p.codigoPieza || '').trim().toUpperCase() === codigo);
-                cerrarEscaner();
+
+                await cerrarEscaner();
                 mostrarSeccion('seccionInventario');
 
                 if (!piezaEncontrada) {
+                    $('filtroNombre').value = codigo;
+                    aplicarFiltros();
                     alert('Código leído: ' + codigo + '\nNo se encontró una pieza con ese código.');
+                    return;
                 }
+
+                abrirDetallePieza(piezaEncontrada.id, true);
             },
-            () => { }
+            () => {}
         );
     } catch (err) {
         console.error('Error del escáner:', err);
-        alert('No se pudo iniciar la cámara. Verifica los permisos.');
+        alert('No se pudo iniciar la cámara. Verifica los permisos y que el sitio use HTTPS.');
         try { if (html5QrCode && html5QrCode.isScanning) await html5QrCode.stop(); } catch (_) {}
         modal.classList.add('hidden');
     }
@@ -1130,6 +1692,7 @@ async function cerrarEscaner() {
     } catch (err) {
         console.error('Error al detener el escáner:', err);
     } finally {
+        escaneoProcesado = false;
         $('modalEscaner').classList.add('hidden');
     }
 }
@@ -1138,37 +1701,38 @@ async function cerrarEscaner() {
 // 8) EXPORTAR PDF
 // =========================================================
 function descargarPDFInventario() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    doc.setFontSize(14); doc.setTextColor(234, 88, 12);
-    doc.text("VOLMEX - Reporte de Inventario", 14, 15);
-    doc.setFontSize(10); doc.setTextColor(100, 100, 100);
-    
-    const filtroMat = document.getElementById("filtroMaterial").value;
-    const textoFiltro = filtroMat ? `Material: ${filtroMat}` : 'Todos los materiales';
-    doc.text(`Filtros: ${textoFiltro} | Fecha: ${new Date().toLocaleDateString()}`, 14, 22);
+    const {jsPDF} = window.jspdf;
+    const doc = new jsPDF({orientation: 'landscape'});
+    const piezasParaExportar = obtenerPiezasFiltradasOrdenadas();
 
-    const tableBody = document.getElementById("tablaPiezasBody");
-    const rows = Array.from(tableBody.querySelectorAll("tr")).filter(tr => tr.innerText !== "No se encontraron piezas");
+    if (!piezasParaExportar.length) return alert('No hay piezas para exportar.');
 
-    const bodyData = rows.map(tr => {
-        const tds = tr.querySelectorAll("td");
-        if (tds.length >= 6) {
-            return [
-                tds[0].innerText.trim(), tds[1].innerText.trim(),
-                tds[2].innerText.trim(), tds[3].innerText.trim(),
-                tds[4].innerText.trim(), tds[5].innerText.trim()
-            ];
-        }
-        return null;
-    }).filter(Boolean);
+    doc.setFontSize(14);
+    doc.setTextColor(234, 88, 12);
+    doc.text('VOLMEX - Reporte de Inventario', 14, 15);
 
-    if (bodyData.length === 0) return alert("No hay piezas en la tabla para exportar.");
+    doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
+    const ordenTexto = $('ordenInventario')?.selectedOptions?.[0]?.textContent || '';
+    doc.text(`Registros: ${piezasParaExportar.length} | Orden: ${ordenTexto} | Fecha: ${new Date().toLocaleDateString('es-MX')}`, 14, 22);
+
+    const bodyData = piezasParaExportar.map(p => [
+        p.codigoPieza || '',
+        p.nombre || '',
+        p.material || '',
+        p.calibre || '',
+        p.ubicacion || '',
+        String(Number(p.stockActual) || 0),
+        obtenerEstadoStock(p)
+    ]);
 
     doc.autoTable({
-        startY: 28, head: [['Código', 'Nombre', 'Material', 'Ubicación', 'Stock', 'Estado']],
-        body: bodyData, theme: 'striped', headStyles: { fillColor: [234, 88, 12] },
-        styles: { fontSize: 8, cellPadding: 2 }
+        startY: 28,
+        head: [['Código','Nombre','Material','Calibre','Ubicación','Stock','Estado']],
+        body: bodyData,
+        theme: 'striped',
+        headStyles: {fillColor: [234, 88, 12]},
+        styles: {fontSize: 7, cellPadding: 2}
     });
     doc.save(`Inventario_Volmex_${Date.now()}.pdf`);
 }
