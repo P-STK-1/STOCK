@@ -138,26 +138,26 @@
                     <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-3">
                         <div>
                             <p class="font-bold mb-1">Archivos de la pieza</p>
-                            <p class="text-xs text-slate-500">La foto solo se muestra como vista previa. Los PDF y el CNC se ofrecen para descargar.</p>
+                            <p class="text-xs text-slate-500">Los PDF y el CNC se ofrecen para descargar.</p>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div class="bg-white border rounded-lg p-3">
-                                <label for="archivoFotoPieza" class="block font-semibold mb-1">📷 Foto de referencia</label>
+                                <label for="archivoFotoPieza" class="block font-semibold mb-1">📷 Imagen</label>
                                 <input type="file" id="archivoFotoPieza" accept="image/*" required class="w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-orange-100 file:text-orange-700">
                                 <p id="estadoFotoActual" class="hidden text-[11px] text-blue-700 mt-2"></p>
                             </div>
                             <div class="bg-white border rounded-lg p-3">
-                                <label for="archivoPdf1" class="block font-semibold mb-1">📄 PDF 1</label>
+                                <label for="archivoPdf1" class="block font-semibold mb-1">📄 NESTEO</label>
                                 <input type="file" id="archivoPdf1" accept=".pdf,application/pdf" required class="w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-orange-100 file:text-orange-700">
                                 <p id="estadoPdf1Actual" class="hidden text-[11px] text-blue-700 mt-2"></p>
                             </div>
                             <div class="bg-white border rounded-lg p-3">
-                                <label for="archivoPdf2" class="block font-semibold mb-1">📄 PDF 2</label>
+                                <label for="archivoPdf2" class="block font-semibold mb-1">📄 PLANO</label>
                                 <input type="file" id="archivoPdf2" accept=".pdf,application/pdf" required class="w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-orange-100 file:text-orange-700">
                                 <p id="estadoPdf2Actual" class="hidden text-[11px] text-blue-700 mt-2"></p>
                             </div>
                             <div class="bg-white border rounded-lg p-3">
-                                <label for="archivoCnc" class="block font-semibold mb-1">⚙️ Archivo CNC</label>
+                                <label for="archivoCnc" class="block font-semibold mb-1">⚙️ Ruta CNC</label>
                                 <input type="file" id="archivoCnc" accept=".cnc,.nc,.tap,.gcode,.ngc,.iso,.eia,.txt,.dxf" required class="w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-orange-100 file:text-orange-700">
                                 <p id="estadoCncActual" class="hidden text-[11px] text-blue-700 mt-2"></p>
                             </div>
@@ -348,7 +348,7 @@
             </section>
             <section class="lg:col-span-7 bg-white rounded-xl shadow-md p-5">
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border-b pb-3 mb-4">
-                    <div><h2 class="font-bold text-lg">Placas sobrantes disponibles</h2><p class="text-xs text-slate-500">Consulta retales que pueden aprovecharse antes de comprar material nuevo.</p></div>
+                    <div><h2 class="font-bold text-lg">Placas sobrantes disponibles</h2><p class="text-xs text-slate-500">Consulta sobrantes que pueden aprovecharse antes de comprar material nuevo.</p></div>
                     <input id="filtroPlacas" oninput="renderPlacas()" type="search" placeholder="🔎 Buscar placa, material o pieza..." class="border rounded-lg p-2.5 text-sm md:w-72">
                 </div>
                 <div class="overflow-x-auto border rounded-lg">
@@ -631,9 +631,9 @@ function crearArchivoPieza(url, nombre, tipo, nombreAlternativo='Archivo') {
 function normalizarArchivosPieza(pieza) {
     const p = pieza || {};
     let foto = crearArchivoPieza(p.fotoUrl, p.fotoNombre, p.fotoTipo, 'Foto de pieza');
-    let pdf1 = crearArchivoPieza(p.pdf1Url, p.pdf1Nombre, p.pdf1Tipo, 'PDF 1');
-    let pdf2 = crearArchivoPieza(p.pdf2Url, p.pdf2Nombre, p.pdf2Tipo, 'PDF 2');
-    let cnc = crearArchivoPieza(p.cncUrl, p.cncNombre, p.cncTipo, 'Archivo CNC');
+    let pdf1 = crearArchivoPieza(p.pdf1Url, p.pdf1Nombre, p.pdf1Tipo, 'NESTEO');
+    let pdf2 = crearArchivoPieza(p.pdf2Url, p.pdf2Nombre, p.pdf2Tipo, 'PLANO');
+    let cnc = crearArchivoPieza(p.cncUrl, p.cncNombre, p.cncTipo, 'Ruta CNC');
 
     // Compatibilidad: los registros viejos guardaban el único adjunto en archivoUrl/imagenUrl.
     const urlLegada = p.archivoUrl || p.imagenUrl || '';
@@ -671,16 +671,16 @@ function mostrarArchivosPieza(contenedor, pieza) {
     if (!contenedor) return;
     const archivos = normalizarArchivosPieza(pieza);
     const fotoHtml = archivos.foto?.url
-        ? `<div class="bg-white border rounded-lg p-3"><div class="text-xs font-bold text-slate-600 mb-2">Foto de referencia (solo visualización)</div><img src="${escapeHtml(archivos.foto.url)}" alt="Foto de ${escapeHtml(pieza?.codigoPieza || 'pieza')}" class="max-h-[360px] max-w-full mx-auto rounded-lg object-contain" loading="lazy"></div>`
-        : `<div class="bg-white border rounded-lg p-4 text-sm text-slate-400 text-center">Sin foto de referencia</div>`;
+        ? `<div class="bg-white border rounded-lg p-3"><div class="text-xs font-bold text-slate-600 mb-2">Imagen (solo visualización)</div><img src="${escapeHtml(archivos.foto.url)}" alt="Foto de ${escapeHtml(pieza?.codigoPieza || 'pieza')}" class="max-h-[360px] max-w-full mx-auto rounded-lg object-contain" loading="lazy"></div>`
+        : `<div class="bg-white border rounded-lg p-4 text-sm text-slate-400 text-center">Sin Imagen</div>`;
     const descargas = [
-        { archivo: archivos.pdf1, etiqueta: 'Descargar PDF 1' },
-        { archivo: archivos.pdf2, etiqueta: 'Descargar PDF 2' },
+        { archivo: archivos.pdf1, etiqueta: 'Descargar NESTEO' },
+        { archivo: archivos.pdf2, etiqueta: 'Descargar PLANO' },
         { archivo: archivos.cnc, etiqueta: 'Descargar CNC' }
     ].filter(x => x.archivo?.url);
     const descargasHtml = descargas.length
         ? `<div class="bg-white border rounded-lg p-3"><div class="text-xs font-bold text-slate-600 mb-2">Archivos descargables</div><div class="flex flex-wrap gap-2">${descargas.map(x => enlaceDescargaPieza(x.archivo, x.etiqueta)).join('')}</div><div class="mt-2 space-y-1">${descargas.map(x => `<div class="text-[11px] text-slate-500 break-all">${escapeHtml(x.archivo.nombre)}</div>`).join('')}</div></div>`
-        : `<div class="bg-white border rounded-lg p-4 text-sm text-slate-400 text-center">Sin PDF o archivo CNC cargado</div>`;
+        : `<div class="bg-white border rounded-lg p-4 text-sm text-slate-400 text-center">Sin PDF o Ruta CNC cargado</div>`;
     contenedor.innerHTML = `<div class="w-full space-y-3">${fotoHtml}${descargasHtml}</div>`;
 }
 function mostrarAdjuntoEnContenedor(contenedor, item, titulo='Ver archivo') {
@@ -1034,12 +1034,12 @@ async function guardarPieza(e) {
         }
 
         const foto = await cargarArchivo('archivoFotoPieza', anteriores.foto, 'foto');
-        const pdf1 = await cargarArchivo('archivoPdf1', anteriores.pdf1, 'PDF 1');
-        const pdf2 = await cargarArchivo('archivoPdf2', anteriores.pdf2, 'PDF 2');
-        const cnc = await cargarArchivo('archivoCnc', anteriores.cnc, 'archivo CNC');
+        const pdf1 = await cargarArchivo('archivoPdf1', anteriores.pdf1, 'NESTEO');
+        const pdf2 = await cargarArchivo('archivoPdf2', anteriores.pdf2, 'PLANO');
+        const cnc = await cargarArchivo('archivoCnc', anteriores.cnc, 'Ruta CNC');
 
         if (!foto?.url || !pdf1?.url || !pdf2?.url || !cnc?.url) {
-            throw new Error('Adjunta una foto, dos PDF y un archivo CNC para esta pieza.');
+            throw new Error('Adjunta una foto, dos PDF y un Ruta CNC para esta pieza.');
         }
 
         btn.textContent = '💾 Guardando en Firebase...';
@@ -1063,13 +1063,13 @@ async function guardarPieza(e) {
             fotoNombre: foto.nombre || 'Foto de pieza',
             fotoTipo: foto.tipo || '',
             pdf1Url: pdf1.url,
-            pdf1Nombre: pdf1.nombre || 'PDF 1',
+            pdf1Nombre: pdf1.nombre || 'NESTEO',
             pdf1Tipo: pdf1.tipo || 'application/pdf',
             pdf2Url: pdf2.url,
-            pdf2Nombre: pdf2.nombre || 'PDF 2',
+            pdf2Nombre: pdf2.nombre || 'PLANO',
             pdf2Tipo: pdf2.tipo || 'application/pdf',
             cncUrl: cnc.url,
-            cncNombre: cnc.nombre || 'Archivo CNC',
+            cncNombre: cnc.nombre || 'Ruta CNC',
             cncTipo: cnc.tipo || '',
             // Campos de compatibilidad con versiones anteriores; la foto no se usa como descarga.
             imagenUrl: foto.url,
@@ -1120,9 +1120,9 @@ function editarPieza(id) {
     const archivos = normalizarArchivosPieza(p);
     const camposArchivo = [
         ['archivoFotoPieza', 'estadoFotoActual', archivos.foto, 'foto'],
-        ['archivoPdf1', 'estadoPdf1Actual', archivos.pdf1, 'PDF 1'],
-        ['archivoPdf2', 'estadoPdf2Actual', archivos.pdf2, 'PDF 2'],
-        ['archivoCnc', 'estadoCncActual', archivos.cnc, 'archivo CNC']
+        ['archivoPdf1', 'estadoPdf1Actual', archivos.pdf1, 'NESTEO'],
+        ['archivoPdf2', 'estadoPdf2Actual', archivos.pdf2, 'PLANO'],
+        ['archivoCnc', 'estadoCncActual', archivos.cnc, 'Ruta CNC']
     ];
     camposArchivo.forEach(([inputId, estadoId, archivo, etiqueta]) => {
         const input = $(inputId);
@@ -1405,11 +1405,11 @@ function renderTablaPiezas(piezasParaMostrar) {
 
         const archivosPieza = normalizarArchivosPieza(p);
         const miniFoto = archivosPieza.foto?.url
-            ? `<img src="${escapeHtml(archivosPieza.foto.url)}" class="w-12 h-12 object-cover rounded border mx-auto" alt="Foto de referencia" loading="lazy">`
+            ? `<img src="${escapeHtml(archivosPieza.foto.url)}" class="w-12 h-12 object-cover rounded border mx-auto" alt="Imagen" loading="lazy">`
             : '<span class="text-slate-300 text-[10px]">Sin foto</span>';
         const enlacesArchivos = [
-            enlaceDescargaPieza(archivosPieza.pdf1, 'PDF 1'),
-            enlaceDescargaPieza(archivosPieza.pdf2, 'PDF 2'),
+            enlaceDescargaPieza(archivosPieza.pdf1, 'NESTEO'),
+            enlaceDescargaPieza(archivosPieza.pdf2, 'PLANO'),
             enlaceDescargaPieza(archivosPieza.cnc, 'CNC')
         ].filter(Boolean).join(' ');
         const archivoCell = `<div class="flex flex-col items-center gap-1">${miniFoto}<div class="flex flex-wrap justify-center gap-1">${enlacesArchivos || '<span class="text-slate-300 text-[10px]">Sin descargas</span>'}</div></div>`;
