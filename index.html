@@ -1972,28 +1972,91 @@ function obtenerPlacasFiltradas() {
     });
 }
 
-function descargarListaPlacas() {
-    const placasParaExportar = obtenerPlacasFiltradas();
-    if (!placasParaExportar.length) return alert('No hay placas en la lista actual para descargar.');
+// Exporta a PDF las placas que coinciden con la búsqueda actual.
+// Se expone en window para que el botón HTML onclick pueda encontrarla siempre.
+window.descargarPDFPlacas = function descargarPDFPlacas() {
+    try {
+        const placasParaExportar = obtenerPlacasFiltradas();
+        if (!placasParaExportar.length) {
+            alert('No hay placas en la lista actual para exportar.');
+            return;
+        }
 
-    const columnas = ['Código', 'Material', 'Calibre / espesor', 'Largo (mm)', 'Ancho (mm)', 'Cantidad', 'Ubicación', 'Piezas asociadas', 'Estado', 'Origen', 'Observaciones'];
-    const filas = placasParaExportar.map(p => [
-        p.codigoPlaca || '', p.material || '', p.calibre || '', Number(p.largo) || 0,
-        Number(p.ancho) || 0, Number(p.cantidad) || 0, p.ubicacion || '',
-        p.piezasAprovechables || '', p.estado || 'Disponible', p.origen || '', p.observaciones || ''
-    ]);
-    const escaparCSV = valor => `"${String(valor ?? '').replace(/"/g, '""')}"`;
-    const contenido = '\uFEFF' + [columnas, ...filas].map(fila => fila.map(escaparCSV).join(';')).join('\r\n');
-    const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const enlace = document.createElement('a');
-    enlace.href = url;
-    enlace.download = `Placas_Sobrantes_Volmex_${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(enlace);
-    enlace.click();
-    enlace.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
+        if (!window.jspdf || typeof window.jspdf.jsPDF !== 'function') {
+            alert('No se pudo cargar jsPDF. Verifica tu conexión a Internet y recarga la página.');
+            return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        if (typeof doc.autoTable !== 'function') {
+            alert('No se pudo cargar la extensión AutoTable para el PDF. Verifica tu conexión a Internet y recarga la página.');
+            return;
+        }
+
+        const filas = placasParaExportar.map(p => [
+            String(p.codigoPlaca || ''),
+            String(p.material || ''),
+            String(p.calibre || ''),
+            `${Number(p.largo) || 0} × ${Number(p.ancho) || 0}`,
+            String(Number(p.cantidad) || 0),
+            String(p.ubicacion || ''),
+            String(p.piezasAprovechables || ''),
+            String(p.estado || 'Disponible'),
+            String(p.origen || ''),
+            String(p.observaciones || '')
+        ]);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(15);
+        doc.setTextColor(234, 88, 12);
+        doc.text('VOLMEX - Reporte de placas sobrantes', 14, 14);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(80, 80, 80);
+        const busqueda = $('filtroPlacas')?.value.trim();
+        const textoBusqueda = busqueda ? ` | Búsqueda: ${busqueda}` : ' | Filtro: todos';
+        doc.text(`Registros: ${filas.length} | Fecha: ${new Date().toLocaleDateString('es-MX')}${textoBusqueda}`, 14, 20, { maxWidth: 265 });
+
+        doc.autoTable({
+            startY: 25,
+            head: [[
+                'Código', 'Material', 'Calibre / espesor', 'Medidas (mm)', 'Cantidad',
+                'Ubicación', 'Piezas asociadas', 'Estado', 'Origen', 'Observaciones'
+            ]],
+            body: filas,
+            theme: 'striped',
+            headStyles: { fillColor: [234, 88, 12], fontSize: 7, cellPadding: 2 },
+            styles: { font: 'helvetica', fontSize: 6, cellPadding: 1.8, overflow: 'linebreak', valign: 'top' },
+            columnStyles: {
+                0: { cellWidth: 23 },
+                1: { cellWidth: 23 },
+                2: { cellWidth: 22 },
+                3: { cellWidth: 24 },
+                4: { cellWidth: 14, halign: 'center' },
+                5: { cellWidth: 24 },
+                6: { cellWidth: 42 },
+                7: { cellWidth: 19 },
+                8: { cellWidth: 28 },
+                9: { cellWidth: 38 }
+            },
+            margin: { left: 10, right: 10, top: 25, bottom: 12 },
+            didDrawPage: function () {
+                const pagina = doc.internal.getNumberOfPages();
+                const alto = doc.internal.pageSize.getHeight();
+                doc.setFontSize(7);
+                doc.setTextColor(120, 120, 120);
+                doc.text(`VOLMEX | Página ${pagina}`, 280, alto - 5, { align: 'right' });
+            }
+        });
+
+        doc.save(`Placas_Sobrantes_Volmex_${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (error) {
+        console.error('Error al generar el PDF de placas sobrantes:', error);
+        alert('Ocurrió un error al generar el PDF. Revisa la consola del navegador para más detalles.');
+    }
+};
 
 function descargarPDFMovimientos() {
     if (!movimientos.length) return alert('No hay movimientos en la lista para exportar.');
