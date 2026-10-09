@@ -134,13 +134,33 @@
                         <input type="text" id="nombre" placeholder="Ej. MENSULA IZQ." class="w-full border rounded-lg p-2.5" required>
                     </div>
 
-                    <!-- NUEVO: CARGA DE ARCHIVO A CLOUDINARY -->
-                    <div class="bg-slate-50 border border-slate-200 rounded-lg p-3">
-                        <label class="block font-semibold mb-1">Foto, plano o documento (Cloudinary)</label>
-                        <input type="file" id="archivoPieza" accept="image/*,.pdf,.dwg,.dxf,.doc,.docx,.xls,.xlsx,.zip,.txt" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-orange-100 file:text-orange-700 hover:file:bg-orange-200">
-                        <div id="vistaPreviaArchivo" class="hidden text-xs text-blue-600 mt-2 font-semibold flex items-center gap-1">
-                            <span>📎 Archivo actual:</span>
-                            <a id="enlaceArchivoActual" href="#" target="_blank" class="underline hover:text-blue-800">Ver adjunto existente</a>
+                    <!-- ARCHIVOS DE LA PIEZA: FOTO VISUAL + DOS PDF + CNC -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-3">
+                        <div>
+                            <p class="font-bold mb-1">Archivos de la pieza</p>
+                            <p class="text-xs text-slate-500">La foto solo se muestra como vista previa. Los PDF y el CNC se ofrecen para descargar.</p>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div class="bg-white border rounded-lg p-3">
+                                <label for="archivoFotoPieza" class="block font-semibold mb-1">📷 Foto de referencia</label>
+                                <input type="file" id="archivoFotoPieza" accept="image/*" required class="w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-orange-100 file:text-orange-700">
+                                <p id="estadoFotoActual" class="hidden text-[11px] text-blue-700 mt-2"></p>
+                            </div>
+                            <div class="bg-white border rounded-lg p-3">
+                                <label for="archivoPdf1" class="block font-semibold mb-1">📄 PDF 1</label>
+                                <input type="file" id="archivoPdf1" accept=".pdf,application/pdf" required class="w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-orange-100 file:text-orange-700">
+                                <p id="estadoPdf1Actual" class="hidden text-[11px] text-blue-700 mt-2"></p>
+                            </div>
+                            <div class="bg-white border rounded-lg p-3">
+                                <label for="archivoPdf2" class="block font-semibold mb-1">📄 PDF 2</label>
+                                <input type="file" id="archivoPdf2" accept=".pdf,application/pdf" required class="w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-orange-100 file:text-orange-700">
+                                <p id="estadoPdf2Actual" class="hidden text-[11px] text-blue-700 mt-2"></p>
+                            </div>
+                            <div class="bg-white border rounded-lg p-3">
+                                <label for="archivoCnc" class="block font-semibold mb-1">⚙️ Archivo CNC</label>
+                                <input type="file" id="archivoCnc" accept=".cnc,.nc,.tap,.gcode,.ngc,.iso,.eia,.txt,.dxf" required class="w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-orange-100 file:text-orange-700">
+                                <p id="estadoCncActual" class="hidden text-[11px] text-blue-700 mt-2"></p>
+                            </div>
                         </div>
                     </div>
 
@@ -209,7 +229,6 @@
                     </div>
 
                     <input type="hidden" id="editDocId" value="">
-                    <input type="hidden" id="imagenUrlActual" value="">
 
                     <div class="flex gap-2 pt-2">
                         <button type="submit" id="btnGuardar" class="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-lg shadow">💾 Guardar pieza</button>
@@ -267,7 +286,7 @@
                             <tr class="bg-slate-100 text-slate-700 border-b">
                                 <th class="p-2.5">Código</th>
                                 <th class="p-2.5">Nombre</th>
-                                <th class="p-2.5">Archivo</th>
+                                <th class="p-2.5">Foto / archivos</th>
                                 <th class="p-2.5">Material</th>
                                 <th class="p-2.5">Ubicación</th>
                                 <th class="p-2.5 text-center">Stock</th>
@@ -480,7 +499,7 @@
                 <button onclick="cerrarDetallePieza()" class="text-slate-500 hover:text-slate-700 text-2xl">×</button>
             </div>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                <div id="detalleAdjunto" class="bg-slate-50 border rounded-xl min-h-[280px] max-h-[520px] flex items-center justify-center p-3 text-sm text-slate-400 overflow-auto">Sin archivo adjunto</div>
+                <div id="detalleAdjunto" class="bg-slate-50 border rounded-xl min-h-[280px] p-3 text-sm text-slate-400 overflow-auto">Cargando archivos...</div>
                 <div class="grid grid-cols-2 gap-3 text-sm">
                     <div><div class="text-xs text-slate-500">Código</div><div id="detalleCodigo" class="font-mono font-black text-orange-700"></div></div>
                     <div><div class="text-xs text-slate-500">Nombre</div><div id="detalleNombre" class="font-bold"></div></div>
@@ -597,6 +616,72 @@ function esPdf(item) {
 }
 function nombreArchivo(item) {
     return item?.archivoNombre || (obtenerUrlAdjunto(item).split('/').pop() || 'Archivo adjunto');
+}
+
+// Normaliza archivos nuevos y permite seguir leyendo piezas registradas con el campo único anterior.
+function crearArchivoPieza(url, nombre, tipo, nombreAlternativo='Archivo') {
+    if (!url) return null;
+    let nombreFinal = nombre || '';
+    if (!nombreFinal) {
+        try { nombreFinal = decodeURIComponent(String(url).split('/').pop().split('?')[0]); }
+        catch (_) { nombreFinal = String(url).split('/').pop().split('?')[0]; }
+    }
+    return { url, nombre: nombreFinal || nombreAlternativo, tipo: tipo || '' };
+}
+function normalizarArchivosPieza(pieza) {
+    const p = pieza || {};
+    let foto = crearArchivoPieza(p.fotoUrl, p.fotoNombre, p.fotoTipo, 'Foto de pieza');
+    let pdf1 = crearArchivoPieza(p.pdf1Url, p.pdf1Nombre, p.pdf1Tipo, 'PDF 1');
+    let pdf2 = crearArchivoPieza(p.pdf2Url, p.pdf2Nombre, p.pdf2Tipo, 'PDF 2');
+    let cnc = crearArchivoPieza(p.cncUrl, p.cncNombre, p.cncTipo, 'Archivo CNC');
+
+    // Compatibilidad: los registros viejos guardaban el único adjunto en archivoUrl/imagenUrl.
+    const urlLegada = p.archivoUrl || p.imagenUrl || '';
+    const urlsActuales = [foto, pdf1, pdf2, cnc].filter(Boolean).map(a => a.url);
+    if (urlLegada && !urlsActuales.includes(urlLegada)) {
+        const legado = { archivoUrl: urlLegada, archivoTipo: p.archivoTipo || '', archivoNombre: p.archivoNombre || '' };
+        const archivoLegado = crearArchivoPieza(urlLegada, p.archivoNombre, p.archivoTipo, 'Archivo anterior');
+        if (esImagen(legado)) {
+            if (!foto) foto = archivoLegado;
+        } else if (esPdf(legado)) {
+            if (!pdf1) pdf1 = archivoLegado;
+            else if (!pdf2) pdf2 = archivoLegado;
+        } else if (!cnc) {
+            cnc = archivoLegado;
+        }
+    }
+
+    // En algunos registros antiguos solo quedó imagenUrl.
+    if (!foto && p.imagenUrl && esImagen({ archivoUrl: p.imagenUrl, archivoTipo: p.imagenTipo || p.archivoTipo || '', archivoNombre: p.fotoNombre || p.archivoNombre || '' })) {
+        foto = crearArchivoPieza(p.imagenUrl, p.fotoNombre || p.archivoNombre, p.imagenTipo || p.archivoTipo, 'Foto de pieza');
+    }
+    return { foto, pdf1, pdf2, cnc };
+}
+function urlDescargaPieza(url) {
+    if (!url) return '';
+    // Cloudinary añade Content-Disposition: attachment para que el archivo se descargue.
+    return String(url).replace(/\/upload\/(?!fl_attachment\/)/, '/upload/fl_attachment/');
+}
+function enlaceDescargaPieza(archivo, etiqueta) {
+    if (!archivo?.url) return '';
+    const nombre = archivo.nombre || etiqueta;
+    return `<a href="${escapeHtml(urlDescargaPieza(archivo.url))}" download="${escapeHtml(nombre)}" class="inline-flex items-center gap-1 bg-orange-100 hover:bg-orange-200 text-orange-800 px-2 py-1 rounded font-semibold text-[10px]">⬇ ${escapeHtml(etiqueta)}</a>`;
+}
+function mostrarArchivosPieza(contenedor, pieza) {
+    if (!contenedor) return;
+    const archivos = normalizarArchivosPieza(pieza);
+    const fotoHtml = archivos.foto?.url
+        ? `<div class="bg-white border rounded-lg p-3"><div class="text-xs font-bold text-slate-600 mb-2">Foto de referencia (solo visualización)</div><img src="${escapeHtml(archivos.foto.url)}" alt="Foto de ${escapeHtml(pieza?.codigoPieza || 'pieza')}" class="max-h-[360px] max-w-full mx-auto rounded-lg object-contain" loading="lazy"></div>`
+        : `<div class="bg-white border rounded-lg p-4 text-sm text-slate-400 text-center">Sin foto de referencia</div>`;
+    const descargas = [
+        { archivo: archivos.pdf1, etiqueta: 'Descargar PDF 1' },
+        { archivo: archivos.pdf2, etiqueta: 'Descargar PDF 2' },
+        { archivo: archivos.cnc, etiqueta: 'Descargar CNC' }
+    ].filter(x => x.archivo?.url);
+    const descargasHtml = descargas.length
+        ? `<div class="bg-white border rounded-lg p-3"><div class="text-xs font-bold text-slate-600 mb-2">Archivos descargables</div><div class="flex flex-wrap gap-2">${descargas.map(x => enlaceDescargaPieza(x.archivo, x.etiqueta)).join('')}</div><div class="mt-2 space-y-1">${descargas.map(x => `<div class="text-[11px] text-slate-500 break-all">${escapeHtml(x.archivo.nombre)}</div>`).join('')}</div></div>`
+        : `<div class="bg-white border rounded-lg p-4 text-sm text-slate-400 text-center">Sin PDF o archivo CNC cargado</div>`;
+    contenedor.innerHTML = `<div class="w-full space-y-3">${fotoHtml}${descargasHtml}</div>`;
 }
 function mostrarAdjuntoEnContenedor(contenedor, item, titulo='Ver archivo') {
     const url = obtenerUrlAdjunto(item);
@@ -893,21 +978,20 @@ function actualizarEstadisticas() {
     $('statSinStock').textContent = piezas.filter(p => Number(p.stockActual) === 0).length;
 }
 
+function extraerConsecutivoPieza(codigo) {
+    const coincidencia = String(codigo || '').trim().match(/^p-(\d+)-/i);
+    return coincidencia ? Number(coincidencia[1]) : 0;
+}
+function siguienteConsecutivoPieza() {
+    const numeros = piezas.map(p => extraerConsecutivoPieza(p.codigoPieza)).filter(n => Number.isFinite(n) && n > 0);
+    return (numeros.length ? Math.max(...numeros) : 0) + 1;
+}
 function actualizarCodigoVistaPrevia() {
-    if ($('editDocId').value) return; 
+    if ($('editDocId').value) return;
     const cat = $('categoria').value;
     const proc = $('proceso').value;
-    const sufijo = `S${cat}${proc}`.toUpperCase();
-    
-    const numeros = piezas
-        .filter(p => p.codigoPieza && p.codigoPieza.toUpperCase().endsWith(`-${sufijo}`))
-        .map(p => {
-            const partes = p.codigoPieza.split('-');
-            return (partes.length >= 2 && !isNaN(partes[1])) ? Number(partes[1]) : 0;
-        }).filter(Number.isFinite);
-        
-    const siguiente = numeros.length ? Math.max(...numeros) + 1 : 1;
-    $('codigoPiezaManual').value = `P-${String(siguiente).padStart(3, '0')}-${sufijo}`;
+    const sufijo = `s${cat}${proc}`.toLowerCase();
+    $('codigoPiezaManual').value = `p-${String(siguienteConsecutivoPieza()).padStart(3, '0')}-${sufijo}`;
 }
 
 async function guardarPieza(e) {
@@ -917,33 +1001,47 @@ async function guardarPieza(e) {
     btn.disabled = true;
 
     try {
-        let codigo = $('codigoPiezaManual').value.trim().toUpperCase();
+        const codigo = $('codigoPiezaManual').value.trim().toLowerCase();
+        const coincidenciaCodigo = codigo.match(/^p-(\d{3,})-s([vlgx])([dfm])$/);
+        if (!coincidenciaCodigo) {
+            throw new Error('El código debe tener el formato p-001-svd, p-002-svf, etc.');
+        }
 
-        if (!id && piezas.some(p => p.codigoPieza.toLowerCase() === codigo.toLowerCase())) {
-            if(!confirm(`El código "${codigo}" ya existe. ¿Deseas usarlo de todos modos?`)) {
-                btn.disabled = false; btn.textContent = "💾 Guardar pieza";
-                return;
+        const piezaAnterior = id ? (piezas.find(x => x.id === id) || null) : null;
+        const codigoAnterior = String(piezaAnterior?.codigoPieza || '').trim().toLowerCase();
+        const numeroCodigo = Number(coincidenciaCodigo[1]);
+        if (codigo !== codigoAnterior) {
+            const consecutivoOcupado = piezas.some(p => p.id !== id && extraerConsecutivoPieza(p.codigoPieza) === numeroCodigo);
+            if (consecutivoOcupado) {
+                throw new Error(`El consecutivo ${String(numeroCodigo).padStart(3, '0')} ya está asignado a otra pieza. Usa el siguiente consecutivo disponible.`);
             }
         }
-
-        // Subir archivo a Cloudinary si se seleccionó uno
-        let imagenUrl = $('imagenUrlActual').value;
-        let archivoUrl = imagenUrl;
-        let archivoNombre = id ? (piezas.find(x => x.id === id)?.archivoNombre || '') : '';
-        let archivoTipo = id ? (piezas.find(x => x.id === id)?.archivoTipo || '') : '';
-        const inputArchivo = $('archivoPieza');
-
-        if (inputArchivo.files && inputArchivo.files[0]) {
-            btn.textContent = "☁️ Subiendo archivo...";
-            const archivo = inputArchivo.files[0];
-            archivoNombre = archivo.name;
-            archivoTipo = archivo.type || '';
-            archivoUrl = await subirACloudinary(archivo);
-            imagenUrl = archivoUrl;
+        if (piezas.some(p => p.id !== id && String(p.codigoPieza || '').trim().toLowerCase() === codigo)) {
+            throw new Error(`El código ${codigo} ya existe.`);
         }
 
-        btn.textContent = "💾 Guardar en Firebase...";
+        const anteriores = normalizarArchivosPieza(piezaAnterior);
+        async function cargarArchivo(inputId, anterior, etiqueta) {
+            const input = $(inputId);
+            const archivo = input.files && input.files[0];
+            if (!archivo) return anterior || null;
+            btn.textContent = `☁️ Subiendo ${etiqueta}...`;
+            const url = await subirACloudinary(archivo);
+            const extension = archivo.name.includes('.') ? archivo.name.split('.').pop().toLowerCase() : '';
+            const tipoInferido = extension === 'pdf' ? 'application/pdf' : '';
+            return { url, nombre: archivo.name, tipo: archivo.type || tipoInferido };
+        }
 
+        const foto = await cargarArchivo('archivoFotoPieza', anteriores.foto, 'foto');
+        const pdf1 = await cargarArchivo('archivoPdf1', anteriores.pdf1, 'PDF 1');
+        const pdf2 = await cargarArchivo('archivoPdf2', anteriores.pdf2, 'PDF 2');
+        const cnc = await cargarArchivo('archivoCnc', anteriores.cnc, 'archivo CNC');
+
+        if (!foto?.url || !pdf1?.url || !pdf2?.url || !cnc?.url) {
+            throw new Error('Adjunta una foto, dos PDF y un archivo CNC para esta pieza.');
+        }
+
+        btn.textContent = '💾 Guardando en Firebase...';
         const data = {
             codigoPieza: codigo,
             categoria: $('categoria').value,
@@ -960,73 +1058,104 @@ async function guardarPieza(e) {
             stockMin: Math.max(0, Number($('stockMin').value) || 0),
             stockMax: Math.max(1, Number($('stockMax').value) || 1),
             descripcion: $('descripcion').value.trim(),
-            imagenUrl: imagenUrl,
-            archivoUrl: archivoUrl,
-            archivoNombre: archivoNombre,
-            archivoTipo: archivoTipo
+            fotoUrl: foto.url,
+            fotoNombre: foto.nombre || 'Foto de pieza',
+            fotoTipo: foto.tipo || '',
+            pdf1Url: pdf1.url,
+            pdf1Nombre: pdf1.nombre || 'PDF 1',
+            pdf1Tipo: pdf1.tipo || 'application/pdf',
+            pdf2Url: pdf2.url,
+            pdf2Nombre: pdf2.nombre || 'PDF 2',
+            pdf2Tipo: pdf2.tipo || 'application/pdf',
+            cncUrl: cnc.url,
+            cncNombre: cnc.nombre || 'Archivo CNC',
+            cncTipo: cnc.tipo || '',
+            // Campos de compatibilidad con versiones anteriores; la foto no se usa como descarga.
+            imagenUrl: foto.url,
+            archivoUrl: '',
+            archivoNombre: '',
+            archivoTipo: ''
         };
 
         if (id) {
             await db.collection('piezas').doc(id).update(data);
-            alert("Pieza actualizada con éxito.");
+            alert('Pieza actualizada con éxito.');
         } else {
             data.fechaRegistro = firebase.firestore.FieldValue.serverTimestamp();
             await db.collection('piezas').add(data);
-            alert("Pieza registrada con éxito.");
+            alert('Pieza registrada con éxito.');
         }
         cancelarEdicion();
     } catch (error) {
         console.error(error);
-        alert("Error al guardar: " + error.message);
+        alert('Error al guardar: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = $('editDocId').value ? '💾 Actualizar pieza' : '💾 Guardar pieza';
     }
-    btn.disabled = false; 
-    btn.textContent = "💾 Guardar pieza";
 }
 
 function editarPieza(id) {
     const p = piezas.find(x => x.id === id);
-    if(!p) return;
-    
+    if (!p) return;
+
     $('editDocId').value = p.id;
-    $('categoria').value = p.categoria || "X";
-    $('proceso').value = p.proceso || "M";
-    $('codigoPiezaManual').value = p.codigoPieza;
-    $('nombre').value = p.nombre;
-    $('material').value = p.material || "";
-    $('calibre').value = p.calibre || "";
-    $('unidad').value = p.unidad || "pieza";
-    $('ubicacion').value = p.ubicacion || "";
-    $('aplicacion').value = p.aplicacion || "";
-    $('proveedor').value = p.proveedor || "";
-    $('numeroPlano').value = p.numeroPlano || "";
-    $('stockActual').value = p.stockActual;
-    $('stockMin').value = p.stockMin;
-    $('stockMax').value = p.stockMax;
-    $('descripcion').value = p.descripcion || "";
+    $('categoria').value = p.categoria || 'X';
+    $('proceso').value = p.proceso || 'M';
+    $('codigoPiezaManual').value = String(p.codigoPieza || '').toLowerCase();
+    $('nombre').value = p.nombre || '';
+    $('material').value = p.material || '';
+    $('calibre').value = p.calibre || '';
+    $('unidad').value = p.unidad || 'pieza';
+    $('ubicacion').value = p.ubicacion || '';
+    $('aplicacion').value = p.aplicacion || '';
+    $('proveedor').value = p.proveedor || '';
+    $('numeroPlano').value = p.numeroPlano || '';
+    $('stockActual').value = p.stockActual ?? 0;
+    $('stockMin').value = p.stockMin ?? 1;
+    $('stockMax').value = p.stockMax ?? 5;
+    $('descripcion').value = p.descripcion || '';
 
-    // Manejar URL existente del archivo
-    $('imagenUrlActual').value = obtenerUrlAdjunto(p);
-    if (obtenerUrlAdjunto(p)) {
-        $('enlaceArchivoActual').href = obtenerUrlAdjunto(p);
-        $('enlaceArchivoActual').textContent = esImagen(p) ? "Ver imagen actual" : "Ver archivo actual";
-        $('vistaPreviaArchivo').classList.remove('hidden');
-    } else {
-        $('vistaPreviaArchivo').classList.add('hidden');
-    }
+    const archivos = normalizarArchivosPieza(p);
+    const camposArchivo = [
+        ['archivoFotoPieza', 'estadoFotoActual', archivos.foto, 'foto'],
+        ['archivoPdf1', 'estadoPdf1Actual', archivos.pdf1, 'PDF 1'],
+        ['archivoPdf2', 'estadoPdf2Actual', archivos.pdf2, 'PDF 2'],
+        ['archivoCnc', 'estadoCncActual', archivos.cnc, 'archivo CNC']
+    ];
+    camposArchivo.forEach(([inputId, estadoId, archivo, etiqueta]) => {
+        const input = $(inputId);
+        const estado = $(estadoId);
+        input.value = '';
+        input.required = !archivo?.url;
+        estado.textContent = archivo?.url
+            ? `Actual: ${archivo.nombre}. Se conserva si no eliges otro archivo.`
+            : `Sin ${etiqueta} guardado; selecciona uno para completar la pieza.`;
+        estado.classList.remove('hidden');
+    });
 
-    $('tituloFormulario').textContent = "Editar pieza: " + p.codigoPieza;
+    $('tituloFormulario').textContent = 'Editar pieza: ' + p.codigoPieza;
     $('estadoEdicion').classList.remove('hidden');
-    $('btnCancelarEdicion').classList.remove('hidden');$('btnGuardar').textContent = "💾 Actualizar pieza";
+    $('btnCancelarEdicion').classList.remove('hidden');
+    $('btnGuardar').textContent = '💾 Actualizar pieza';
     window.scrollTo(0, 0);
 }
 
 function cancelarEdicion() {
-    $('formPieza').reset();$('editDocId').value = "";
-    $('imagenUrlActual').value = "";
-    $('archivoPieza').value = "";
-    $('vistaPreviaArchivo').classList.add('hidden');$('tituloFormulario').textContent = "Registrar nueva pieza";
+    $('formPieza').reset();
+    $('editDocId').value = '';
+    ['archivoFotoPieza', 'archivoPdf1', 'archivoPdf2', 'archivoCnc'].forEach(id => {
+        $(id).value = '';
+        $(id).required = true;
+    });
+    ['estadoFotoActual', 'estadoPdf1Actual', 'estadoPdf2Actual', 'estadoCncActual'].forEach(id => {
+        $(id).textContent = '';
+        $(id).classList.add('hidden');
+    });
+    $('tituloFormulario').textContent = 'Registrar nueva pieza';
     $('estadoEdicion').classList.add('hidden');
-    $('btnCancelarEdicion').classList.add('hidden');$('btnGuardar').textContent = "💾 Guardar pieza";
+    $('btnCancelarEdicion').classList.add('hidden');
+    $('btnGuardar').textContent = '💾 Guardar pieza';
     actualizarCodigoVistaPrevia();
 }
 
@@ -1068,7 +1197,7 @@ function abrirDetallePieza(id, enfocarSalida=false) {
     $('detalleStockMin').textContent = Number(p.stockMin) || 0;
     $('detalleStockMax').textContent = Number(p.stockMax) || 0;
     $('detalleDescripcion').textContent = p.descripcion || 'Sin observaciones.';
-    mostrarAdjuntoEnContenedor($('detalleAdjunto'), p, `Archivo de ${p.codigoPieza}`);
+    mostrarArchivosPieza($('detalleAdjunto'), p);
 
     $('salidaCantidadDetalle').value = 1;
     $('salidaCantidadDetalle').max = Math.max(1, Number(p.stockActual) || 1);
@@ -1273,12 +1402,16 @@ function renderTablaPiezas(piezasParaMostrar) {
                 ? '<span class="bg-red-100 text-red-800 px-2 py-1 rounded text-[10px] font-bold">SIN STOCK</span>'
                 : '<span class="bg-amber-100 text-amber-800 px-2 py-1 rounded text-[10px] font-bold">BAJO</span>';
 
-        const url = obtenerUrlAdjunto(p);
-        const archivoCell = url
-            ? (esImagen(p)
-                ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" title="Abrir imagen"><img src="${escapeHtml(url)}" class="w-10 h-10 object-cover rounded border mx-auto" alt="Vista previa"></a>`
-                : `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="text-purple-700 hover:underline font-bold">📎 Ver</a>`)
-            : '<span class="text-slate-300">—</span>';
+        const archivosPieza = normalizarArchivosPieza(p);
+        const miniFoto = archivosPieza.foto?.url
+            ? `<img src="${escapeHtml(archivosPieza.foto.url)}" class="w-12 h-12 object-cover rounded border mx-auto" alt="Foto de referencia" loading="lazy">`
+            : '<span class="text-slate-300 text-[10px]">Sin foto</span>';
+        const enlacesArchivos = [
+            enlaceDescargaPieza(archivosPieza.pdf1, 'PDF 1'),
+            enlaceDescargaPieza(archivosPieza.pdf2, 'PDF 2'),
+            enlaceDescargaPieza(archivosPieza.cnc, 'CNC')
+        ].filter(Boolean).join(' ');
+        const archivoCell = `<div class="flex flex-col items-center gap-1">${miniFoto}<div class="flex flex-wrap justify-center gap-1">${enlacesArchivos || '<span class="text-slate-300 text-[10px]">Sin descargas</span>'}</div></div>`;
 
         tbody.innerHTML += `
             <tr class="hover:bg-slate-50 border-b">
