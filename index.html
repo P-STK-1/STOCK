@@ -349,7 +349,10 @@
             <section class="lg:col-span-7 bg-white rounded-xl shadow-md p-5">
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border-b pb-3 mb-4">
                     <div><h2 class="font-bold text-lg">Placas sobrantes disponibles</h2><p class="text-xs text-slate-500">Consulta sobrantes que pueden aprovecharse antes de comprar material nuevo.</p></div>
-                    <input id="filtroPlacas" oninput="renderPlacas()" type="search" placeholder="🔎 Buscar placa, material o pieza..." class="border rounded-lg p-2.5 text-sm md:w-72">
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input id="filtroPlacas" oninput="renderPlacas()" type="search" placeholder="🔎 Buscar placa, material o pieza..." class="border rounded-lg p-2.5 text-sm md:w-72">
+                        <button onclick="descargarListaPlacas()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap">⬇ Descargar lista</button>
+                    </div>
                 </div>
                 <div class="overflow-x-auto border rounded-lg">
                     <table class="w-full text-xs text-left min-w-[1050px]">
@@ -421,12 +424,15 @@
         <section class="bg-white rounded-xl shadow-md p-5">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border-b pb-3 mb-4">
                 <div><h2 class="font-bold text-lg">Movimientos de stock</h2><p class="text-xs text-slate-500">Entradas, salidas y ajustes para conservar el historial de inventario.</p></div>
-                <button onclick="abrirMovimiento()" class="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-bold">➕ Registrar movimiento</button>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="descargarPDFMovimientos()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-sm font-bold">📄 Descargar PDF</button>
+                    <button onclick="abrirMovimiento()" class="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-bold">➕ Registrar movimiento</button>
+                </div>
             </div>
             <div class="overflow-x-auto border rounded-lg">
-                <table class="w-full text-xs text-left min-w-[900px]">
-                    <thead><tr class="bg-slate-100 border-b"><th class="p-2.5">Fecha</th><th class="p-2.5">Pieza</th><th class="p-2.5">Tipo</th><th class="p-2.5">Cantidad</th><th class="p-2.5">Stock resultante</th><th class="p-2.5">Responsable</th><th class="p-2.5">Motivo</th></tr></thead>
-                    <tbody id="tablaMovimientosBody" class="divide-y"><tr><td colspan="7" class="p-5 text-center text-slate-400">Cargando...</td></tr></tbody>
+                <table class="w-full text-xs text-left min-w-[980px]">
+                    <thead><tr class="bg-slate-100 border-b"><th class="p-2.5">Fecha</th><th class="p-2.5">Pieza</th><th class="p-2.5">Tipo</th><th class="p-2.5">Cantidad</th><th class="p-2.5">Stock resultante</th><th class="p-2.5">Responsable</th><th class="p-2.5">Motivo</th><th class="p-2.5 text-center">Acción</th></tr></thead>
+                    <tbody id="tablaMovimientosBody" class="divide-y"><tr><td colspan="8" class="p-5 text-center text-slate-400">Cargando...</td></tr></tbody>
                 </table>
             </div>
         </section>
@@ -925,11 +931,13 @@ async function cerrarSesion() {
 // =========================================================
 function escucharPiezas() {
     if (unsubscribePiezas) unsubscribePiezas();
-    unsubscribePiezas = db.collection('piezas').orderBy('fechaRegistro', 'desc').onSnapshot(snapshot => {
+    // Cargamos todos los documentos; el orden se aplica en el navegador.
+    // Así también aparecen registros antiguos que no tengan fechaRegistro.
+    unsubscribePiezas = db.collection('piezas').onSnapshot(snapshot => {
         piezas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         actualizarEstadisticas();
         actualizarSelectPiezas();
-        poblarSelectFiltros(); 
+        poblarSelectFiltros();
         aplicarFiltros();
         actualizarCodigoVistaPrevia();
     }, error => {
@@ -1457,6 +1465,28 @@ function actualizarSelectPiezas() {
     if (selM) selM.innerHTML = options;
 }
 
+// Repuebla los filtros sin perder la selección actual del usuario.
+function poblarSelectFiltros() {
+    const configuraciones = [
+        { id: 'filtroMaterial', etiqueta: 'Todos los materiales', campo: 'material' },
+        { id: 'filtroCalibre', etiqueta: 'Todos los calibres', campo: 'calibre' }
+    ];
+
+    configuraciones.forEach(({ id, etiqueta, campo }) => {
+        const select = $(id);
+        if (!select) return;
+        const valorAnterior = select.value;
+        const valores = [...new Set(piezas
+            .map(p => String(p[campo] || '').trim())
+            .filter(Boolean))]
+            .sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base', numeric: true }));
+
+        select.innerHTML = `<option value="">${etiqueta}</option>` +
+            valores.map(valor => `<option value="${escapeHtml(valor)}">${escapeHtml(valor)}</option>`).join('');
+        select.value = valores.includes(valorAnterior) ? valorAnterior : '';
+    });
+}
+
 // =========================================================
  // 6) PLACAS SOBRANTES
  // =========================================================
@@ -1533,12 +1563,7 @@ async function guardarPlaca(e) {
 function renderPlacas() {
     const tbody = $('tablaPlacasBody');
     if (!tbody) return;
-    const busqueda = $('filtroPlacas')?.value.toLowerCase().trim() || '';
-    const filtradas = placas.filter(p => {
-        const texto = [p.codigoPlaca,p.material,p.calibre,p.ubicacion,p.origen,p.piezasAprovechables,p.observaciones]
-            .map(x => String(x || '').toLowerCase()).join(' ');
-        return !busqueda || texto.includes(busqueda);
-    });
+    const filtradas = obtenerPlacasFiltradas();
 
     tbody.innerHTML = '';
     if (!filtradas.length) {
@@ -1830,25 +1855,51 @@ async function guardarMovimiento(e) {
 
 function renderMovimientos() {
     const tbody = $('tablaMovimientosBody');
+    if (!tbody) return;
     tbody.innerHTML = '';
-    if(movimientos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="p-5 text-center text-slate-500">No hay movimientos</td></tr>';
+    if (movimientos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="p-5 text-center text-slate-500">No hay movimientos</td></tr>';
         return;
     }
     movimientos.forEach(m => {
-        const fecha = m.createdAt && m.createdAt.toDate ? m.createdAt.toDate().toLocaleString() : 'Reciente';
+        const fecha = formatoFecha(m.createdAt);
+        const claseTipo = m.tipo === 'ENTRADA' ? 'text-green-600' : m.tipo === 'SALIDA' ? 'text-red-600' : 'text-blue-600';
         tbody.innerHTML += `
             <tr class="hover:bg-slate-50 border-b">
-                <td class="p-2.5">${fecha}</td>
-                <td class="p-2.5 font-bold">${m.piezaCodigo}</td>
-                <td class="p-2.5 font-bold ${m.tipo==='ENTRADA'?'text-green-600':m.tipo==='SALIDA'?'text-red-600':'text-blue-600'}">${m.tipo}</td>
-                <td class="p-2.5">${m.cantidad}</td>
-                <td class="p-2.5">${m.stockResultante}</td>
-                <td class="p-2.5">${m.responsable}</td>
-                <td class="p-2.5">${m.motivo}</td>
+                <td class="p-2.5">${escapeHtml(fecha)}</td>
+                <td class="p-2.5 font-bold">${escapeHtml(m.piezaCodigo || '')}${m.piezaNombre ? `<span class="block text-slate-500 font-normal">${escapeHtml(m.piezaNombre)}</span>` : ''}</td>
+                <td class="p-2.5 font-bold ${claseTipo}">${escapeHtml(m.tipo || '')}</td>
+                <td class="p-2.5">${Number(m.cantidad) || 0}</td>
+                <td class="p-2.5">${Number(m.stockResultante) || 0}</td>
+                <td class="p-2.5">${escapeHtml(m.responsable || '')}</td>
+                <td class="p-2.5">${escapeHtml(m.motivo || '')}</td>
+                <td class="p-2.5 text-center">
+                    <button onclick="eliminarMovimiento('${m.id}')" title="Eliminar solo el registro del historial; no modifica el stock" aria-label="Eliminar movimiento" class="bg-red-100 hover:bg-red-200 text-red-700 w-7 h-7 rounded font-black text-base">×</button>
+                </td>
             </tr>
         `;
     });
+}
+
+async function eliminarMovimiento(id) {
+    const movimiento = movimientos.find(m => m.id === id);
+    if (!movimiento) return alert('El movimiento ya no está disponible.');
+
+    const pwd = prompt('ACCESO RESTRINGIDO\nIngrese la contraseña para borrar este movimiento:');
+    if (pwd !== ADMIN_PASSWORD) {
+        if (pwd !== null) alert('Contraseña incorrecta.');
+        return;
+    }
+
+    const confirmado = confirm('¿Borrar este registro del historial? Esta acción NO modificará el stock actual y no se puede deshacer.');
+    if (!confirmado) return;
+
+    try {
+        await db.collection('movimientos').doc(id).delete();
+    } catch (err) {
+        console.error('Error eliminando movimiento:', err);
+        alert('No se pudo borrar el movimiento: ' + err.message);
+    }
 }
 
 async function abrirEscaner() {
@@ -1911,8 +1962,71 @@ async function cerrarEscaner() {
 }
 
 // =========================================================
-// 8) EXPORTAR PDF
+// 8) EXPORTACIONES
 // =========================================================
+function obtenerPlacasFiltradas() {
+    const busqueda = $('filtroPlacas')?.value.toLowerCase().trim() || '';
+    return placas.filter(p => {
+        const texto = [p.codigoPlaca, p.material, p.calibre, p.ubicacion, p.origen, p.piezasAprovechables, p.observaciones]
+            .map(x => String(x || '').toLowerCase()).join(' ');
+        return !busqueda || texto.includes(busqueda);
+    });
+}
+
+function descargarListaPlacas() {
+    const placasParaExportar = obtenerPlacasFiltradas();
+    if (!placasParaExportar.length) return alert('No hay placas en la lista actual para descargar.');
+
+    const columnas = ['Código', 'Material', 'Calibre / espesor', 'Largo (mm)', 'Ancho (mm)', 'Cantidad', 'Ubicación', 'Piezas asociadas', 'Estado', 'Origen', 'Observaciones'];
+    const filas = placasParaExportar.map(p => [
+        p.codigoPlaca || '', p.material || '', p.calibre || '', Number(p.largo) || 0,
+        Number(p.ancho) || 0, Number(p.cantidad) || 0, p.ubicacion || '',
+        p.piezasAprovechables || '', p.estado || 'Disponible', p.origen || '', p.observaciones || ''
+    ]);
+    const escaparCSV = valor => `"${String(valor ?? '').replace(/"/g, '""')}"`;
+    const contenido = '\uFEFF' + [columnas, ...filas].map(fila => fila.map(escaparCSV).join(';')).join('\r\n');
+    const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const enlace = document.createElement('a');
+    enlace.href = url;
+    enlace.download = `Placas_Sobrantes_Volmex_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(enlace);
+    enlace.click();
+    enlace.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function descargarPDFMovimientos() {
+    if (!movimientos.length) return alert('No hay movimientos en la lista para exportar.');
+    if (!window.jspdf?.jsPDF) return alert('No se pudo cargar la librería para generar PDF. Recarga la página e inténtalo de nuevo.');
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape' });
+    const filas = movimientos.map(m => [
+        formatoFecha(m.createdAt),
+        `${m.piezaCodigo || ''}${m.piezaNombre ? ' - ' + m.piezaNombre : ''}`,
+        m.tipo || '', String(Number(m.cantidad) || 0), String(Number(m.stockResultante) || 0),
+        m.responsable || '', m.motivo || ''
+    ]);
+
+    doc.setFontSize(14);
+    doc.setTextColor(234, 88, 12);
+    doc.text('VOLMEX - Reporte de movimientos de stock', 14, 15);
+    doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Registros mostrados: ${filas.length} | Fecha de descarga: ${new Date().toLocaleDateString('es-MX')}`, 14, 22);
+    doc.autoTable({
+        startY: 28,
+        head: [['Fecha', 'Pieza', 'Tipo', 'Cantidad', 'Stock resultante', 'Responsable', 'Motivo']],
+        body: filas,
+        theme: 'striped',
+        headStyles: { fillColor: [234, 88, 12] },
+        styles: { fontSize: 7, cellPadding: 2, overflow: 'linebreak' },
+        columnStyles: { 1: { cellWidth: 42 }, 6: { cellWidth: 45 } }
+    });
+    doc.save(`Movimientos_Volmex_${new Date().toISOString().slice(0, 10)}.pdf`);
+}
+
 function descargarPDFInventario() {
     const {jsPDF} = window.jspdf;
     const doc = new jsPDF({orientation: 'landscape'});
