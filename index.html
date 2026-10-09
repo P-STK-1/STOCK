@@ -988,10 +988,11 @@ function siguienteConsecutivoPieza() {
 }
 function actualizarCodigoVistaPrevia() {
     if ($('editDocId').value) return;
-    const cat = $('categoria').value;
-    const proc = $('proceso').value;
-    const sufijo = `s${cat}${proc}`.toLowerCase();
-    $('codigoPiezaManual').value = `p-${String(siguienteConsecutivoPieza()).padStart(3, '0')}-${sufijo}`;
+    const cat = $('categoria').value.toUpperCase();
+    const proc = $('proceso').value.toUpperCase();
+    const sufijo = `S${cat}${proc}`;
+    $('codigoPiezaManual').value =
+        `P-${String(siguienteConsecutivoPieza()).padStart(3, '0')}-${sufijo}`;
 }
 
 async function guardarPieza(e) {
@@ -1001,8 +1002,8 @@ async function guardarPieza(e) {
     btn.disabled = true;
 
     try {
-        const codigo = $('codigoPiezaManual').value.trim().toLowerCase();
-        const coincidenciaCodigo = codigo.match(/^p-(\d{3,})-s([vlgx])([dfm])$/);
+        const codigo = $('codigoPiezaManual').value.trim().toUpperCase();
+        const coincidenciaCodigo = codigo.match(/^P-(\d{3,})-S([VLGX])([DFM])$/);
         if (!coincidenciaCodigo) {
             throw new Error('El código debe tener el formato p-001-svd, p-002-svf, etc.');
         }
@@ -1102,7 +1103,7 @@ function editarPieza(id) {
     $('editDocId').value = p.id;
     $('categoria').value = p.categoria || 'X';
     $('proceso').value = p.proceso || 'M';
-    $('codigoPiezaManual').value = String(p.codigoPieza || '').toLowerCase();
+    $('codigoPiezaManual').value = String(p.codigoPieza || '').toUpperCase();
     $('nombre').value = p.nombre || '';
     $('material').value = p.material || '';
     $('calibre').value = p.calibre || '';
