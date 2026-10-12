@@ -662,102 +662,15 @@ function normalizarArchivosPieza(pieza) {
     }
     return { foto, pdf1, pdf2, cnc };
 }
-function nombreSeguroDescarga(nombre, url = '') {
-    let nombreFinal = String(nombre || '').trim();
-    if (!nombreFinal && url) {
-        try {
-            const ruta = new URL(url, window.location.href).pathname;
-            nombreFinal = decodeURIComponent(ruta.split('/').pop() || 'archivo');
-        } catch (_) {
-            nombreFinal = String(url).split('/').pop()?.split('?')[0] || 'archivo';
-        }
-    }
-    // Evita caracteres que pueden generar rutas o nombres inválidos al guardar el archivo.
-    nombreFinal = nombreFinal.replace(/[\\/:*?"<>|,#%&]/g, '_').replace(/[\u0000-\u001F]/g, '').replace(/\s+/g, '_').trim();
-    return nombreFinal || 'archivo';
-}
-
-function urlDescargaPieza(url, nombre = '') {
+function urlDescargaPieza(url) {
     if (!url) return '';
-    const urlOriginal = String(url);
-    const nombreDescarga = nombreSeguroDescarga(nombre, urlOriginal);
-
-    try {
-        const destino = new URL(urlOriginal, window.location.href);
-        // fl_attachment es una transformación de entrega de Cloudinary para recursos image/video.
-        // Los recursos raw (por ejemplo, ciertos CNC) se conservan sin modificar.
-        if (!destino.hostname.toLowerCase().endsWith('cloudinary.com')) return urlOriginal;
-        const partes = destino.pathname.split('/');
-        const indiceUpload = partes.findIndex((parte, indice) =>
-            parte === 'upload' && ['image', 'video'].includes(partes[indice - 1])
-        );
-        if (indiceUpload === -1) return urlOriginal;
-
-        const transformacion = `fl_attachment:${nombreDescarga}`;
-        const siguiente = partes[indiceUpload + 1] || '';
-        if (/^fl_attachment(?::|$)/i.test(siguiente)) {
-            // Actualiza también enlaces antiguos que añadían fl_attachment sin nombre de archivo.
-            partes[indiceUpload + 1] = transformacion;
-        } else {
-            partes.splice(indiceUpload + 1, 0, transformacion);
-        }
-        destino.pathname = partes.join('/');
-        return destino.toString();
-    } catch (error) {
-        console.warn('No se pudo preparar la URL de descarga; se utilizará la original.', error);
-        return urlOriginal;
-    }
+    // Cloudinary añade Content-Disposition: attachment para que el archivo se descargue.
+    return String(url).replace(/\/upload\/(?!fl_attachment\/)/, '/upload/fl_attachment/');
 }
-
-async function descargarArchivoPieza(evento, enlace) {
-    const nombre = nombreSeguroDescarga(enlace?.dataset?.nombreArchivo || enlace?.getAttribute('download'), enlace?.dataset?.originalUrl || enlace?.href);
-    const urlOriginal = enlace?.dataset?.originalUrl || enlace?.href;
-    const tipo = String(enlace?.dataset?.tipoArchivo || '').toLowerCase();
-    const esPDF = tipo === 'application/pdf' || /\.pdf(?:$|[?#])/i.test(nombre) || /\.pdf(?:$|[?#])/i.test(urlOriginal || '');
-
-    // Para CNC y otros archivos se conserva el enlace de descarga que ya funciona.
-    if (!esPDF) return;
-    evento.preventDefault();
-
-    const url = urlDescargaPieza(urlOriginal, nombre);
-    try {
-        // Descargar como Blob evita que el navegador abra el PDF en vez de guardarlo.
-        const respuesta = await fetch(url, { mode: 'cors', credentials: 'omit' });
-        if (!respuesta.ok) throw new Error(`El servidor respondió ${respuesta.status}`);
-        const tipoRespuesta = String(respuesta.headers.get('content-type') || '').toLowerCase();
-        if (tipoRespuesta.includes('text/html') || tipoRespuesta.includes('application/json')) {
-            throw new Error('El servidor no devolvió el PDF; revisa la URL o los permisos de entrega en Cloudinary.');
-        }
-        const blob = await respuesta.blob();
-        if (!blob.size) throw new Error('El archivo descargado está vacío.');
-        const urlTemporal = URL.createObjectURL(blob);
-        const enlaceTemporal = document.createElement('a');
-        enlaceTemporal.href = urlTemporal;
-        enlaceTemporal.download = nombre;
-        enlaceTemporal.style.display = 'none';
-        document.body.appendChild(enlaceTemporal);
-        enlaceTemporal.click();
-        enlaceTemporal.remove();
-        window.setTimeout(() => URL.revokeObjectURL(urlTemporal), 1500);
-    } catch (error) {
-        console.warn('No se pudo descargar el PDF automáticamente; se abrirá el archivo para guardarlo manualmente.', error);
-        // Respaldo: al abrir el PDF en otra pestaña, puede guardarse desde el visor del navegador.
-        const respaldo = document.createElement('a');
-        respaldo.href = urlOriginal;
-        respaldo.target = '_blank';
-        respaldo.rel = 'noopener noreferrer';
-        document.body.appendChild(respaldo);
-        respaldo.click();
-        respaldo.remove();
-        alert('El navegador no permitió descargar el PDF automáticamente. Se abrió en otra pestaña; utiliza el botón de descarga del visor PDF para guardarlo.');
-    }
-}
-
 function enlaceDescargaPieza(archivo, etiqueta) {
     if (!archivo?.url) return '';
-    const nombre = nombreSeguroDescarga(archivo.nombre || etiqueta, archivo.url);
-    const url = urlDescargaPieza(archivo.url, nombre);
-    return `<a href="${escapeHtml(url)}" data-original-url="${escapeHtml(archivo.url)}" data-nombre-archivo="${escapeHtml(nombre)}" data-tipo-archivo="${escapeHtml(archivo.tipo || '')}" download="${escapeHtml(nombre)}" onclick="descargarArchivoPieza(event, this)" class="inline-flex items-center gap-1 bg-orange-100 hover:bg-orange-200 text-orange-800 px-2 py-1 rounded font-semibold text-[10px]">⬇ ${escapeHtml(etiqueta)}</a>`;
+    const nombre = archivo.nombre || etiqueta;
+    return `<a href="${escapeHtml(urlDescargaPieza(archivo.url))}" download="${escapeHtml(nombre)}" class="inline-flex items-center gap-1 bg-orange-100 hover:bg-orange-200 text-orange-800 px-2 py-1 rounded font-semibold text-[10px]">⬇ ${escapeHtml(etiqueta)}</a>`;
 }
 function mostrarArchivosPieza(contenedor, pieza) {
     if (!contenedor) return;
@@ -797,50 +710,24 @@ function piezaPorId(id) {
     return piezas.find(p => p.id === id);
 }
 
-// Sube cada archivo usando el tipo de recurso apropiado de Cloudinary.
-// Los PDF se guardan como RAW para evitar el error 401 de entrega de PDF como image/upload.
-// Las imágenes usan IMAGE y los archivos CNC conservan AUTO para mantener su comportamiento actual.
-async function subirACloudinary(archivo, tipoRecurso = 'auto') {
-    const recursosPermitidos = ['auto', 'image', 'raw', 'video'];
-    const archivoEsPDF = archivo.type === 'application/pdf' || /\.pdf$/i.test(archivo.name || '');
-    // También aplica a los PDF adjuntos en otras secciones (por ejemplo, placas sobrantes).
-    const recursoSolicitado = archivoEsPDF && tipoRecurso === 'auto' ? 'raw' : tipoRecurso;
-    const recurso = recursosPermitidos.includes(recursoSolicitado) ? recursoSolicitado : 'auto';
+// Función para subir archivos a Cloudinary sin servidor
+async function subirACloudinary(archivo) {
     const formData = new FormData();
-    formData.append('file', archivo);
-    formData.append('upload_preset', UPLOAD_PRESET);
+    formData.append("file", archivo);
+    formData.append("upload_preset", UPLOAD_PRESET);
 
-    const respuesta = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${recurso}/upload`, {
-        method: 'POST',
+    const respuesta = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`, {
+        method: "POST",
         body: formData
     });
 
-    let datos;
-    try {
-        datos = await respuesta.json();
-    } catch (_) {
-        throw new Error('Cloudinary devolvió una respuesta no válida al subir el archivo.');
+    if (!respuesta.ok) {
+        const err = await respuesta.json();
+        throw new Error(err.error?.message || "Error al subir archivo a Cloudinary");
     }
 
-    if (!respuesta.ok || !datos.secure_url) {
-        throw new Error(datos?.error?.message || `Error al subir archivo a Cloudinary (${respuesta.status}).`);
-    }
-
-    // Protección: confirma que el PDF quedó en RAW y no vuelve a guardarse como image/upload.
-    if (archivoEsPDF && !datos.secure_url.includes('/raw/upload/')) {
-        throw new Error('Cloudinary no guardó el PDF como archivo RAW. Revisa el preset de carga y vuelve a intentarlo.');
-    }
-
+    const datos = await respuesta.json();
     return datos.secure_url;
-}
-
-function pdfAnteriorNecesitaMigracion(archivo) {
-    if (!archivo?.url) return false;
-    const url = String(archivo.url);
-    const tipo = String(archivo.tipo || '').toLowerCase();
-    const nombre = String(archivo.nombre || '').toLowerCase();
-    const esPDF = tipo.includes('pdf') || /\.pdf(?:$|[?#])/i.test(url) || /\.pdf$/i.test(nombre);
-    return esPDF && /\/image\/upload\//i.test(url);
 }
 
 function extraerCodigoDesdeQR(valor) {
@@ -1145,22 +1032,12 @@ async function guardarPieza(e) {
         async function cargarArchivo(inputId, anterior, etiqueta) {
             const input = $(inputId);
             const archivo = input.files && input.files[0];
-            if (!archivo) {
-                // Los PDF antiguos en image/upload son los que pueden devolver 401;
-                // deben seleccionarse de nuevo para migrarlos a raw/upload.
-                if (pdfAnteriorNecesitaMigracion(anterior)) {
-                    throw new Error(`El archivo ${etiqueta} guardado anteriormente está en image/upload y Cloudinary devuelve 401. Selecciona nuevamente ese PDF para guardarlo como raw/upload.`);
-                }
-                return anterior || null;
-            }
-            const nombreArchivo = String(archivo.name || '');
-            const extension = nombreArchivo.includes('.') ? nombreArchivo.split('.').pop().toLowerCase() : '';
-            const esPDF = archivo.type === 'application/pdf' || extension === 'pdf';
-            const tipoRecurso = esPDF ? 'raw' : (archivo.type && archivo.type.startsWith('image/') ? 'image' : 'auto');
+            if (!archivo) return anterior || null;
             btn.textContent = `☁️ Subiendo ${etiqueta}...`;
-            const url = await subirACloudinary(archivo, tipoRecurso);
+            const url = await subirACloudinary(archivo);
+            const extension = archivo.name.includes('.') ? archivo.name.split('.').pop().toLowerCase() : '';
             const tipoInferido = extension === 'pdf' ? 'application/pdf' : '';
-            return { url, nombre: nombreArchivo, tipo: archivo.type || tipoInferido };
+            return { url, nombre: archivo.name, tipo: archivo.type || tipoInferido };
         }
 
         const foto = await cargarArchivo('archivoFotoPieza', anteriores.foto, 'foto');
