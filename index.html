@@ -1137,7 +1137,7 @@ function editarPieza(id) {
         input.value = '';
         input.required = !archivo?.url;
         estado.textContent = archivo?.url
-            ? `Actual: ${archivo.nombre}. Se conserva si no eliges otro archivo.`
+            ? `Actual: ${archivo.nombre}.`
             : `Sin ${etiqueta} guardado; selecciona uno para completar la pieza.`;
         estado.classList.remove('hidden');
     });
