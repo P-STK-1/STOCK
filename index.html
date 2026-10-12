@@ -797,24 +797,50 @@ function piezaPorId(id) {
     return piezas.find(p => p.id === id);
 }
 
-// Función para subir archivos a Cloudinary sin servidor
-async function subirACloudinary(archivo) {
+// Sube cada archivo usando el tipo de recurso apropiado de Cloudinary.
+// Los PDF se guardan como RAW para evitar el error 401 de entrega de PDF como image/upload.
+// Las imágenes usan IMAGE y los archivos CNC conservan AUTO para mantener su comportamiento actual.
+async function subirACloudinary(archivo, tipoRecurso = 'auto') {
+    const recursosPermitidos = ['auto', 'image', 'raw', 'video'];
+    const archivoEsPDF = archivo.type === 'application/pdf' || /\.pdf$/i.test(archivo.name || '');
+    // También aplica a los PDF adjuntos en otras secciones (por ejemplo, placas sobrantes).
+    const recursoSolicitado = archivoEsPDF && tipoRecurso === 'auto' ? 'raw' : tipoRecurso;
+    const recurso = recursosPermitidos.includes(recursoSolicitado) ? recursoSolicitado : 'auto';
     const formData = new FormData();
-    formData.append("file", archivo);
-    formData.append("upload_preset", UPLOAD_PRESET);
+    formData.append('file', archivo);
+    formData.append('upload_preset', UPLOAD_PRESET);
 
-    const respuesta = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`, {
-        method: "POST",
+    const respuesta = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${recurso}/upload`, {
+        method: 'POST',
         body: formData
     });
 
-    if (!respuesta.ok) {
-        const err = await respuesta.json();
-        throw new Error(err.error?.message || "Error al subir archivo a Cloudinary");
+    let datos;
+    try {
+        datos = await respuesta.json();
+    } catch (_) {
+        throw new Error('Cloudinary devolvió una respuesta no válida al subir el archivo.');
     }
 
-    const datos = await respuesta.json();
+    if (!respuesta.ok || !datos.secure_url) {
+        throw new Error(datos?.error?.message || `Error al subir archivo a Cloudinary (${respuesta.status}).`);
+    }
+
+    // Protección: confirma que el PDF quedó en RAW y no vuelve a guardarse como image/upload.
+    if (archivoEsPDF && !datos.secure_url.includes('/raw/upload/')) {
+        throw new Error('Cloudinary no guardó el PDF como archivo RAW. Revisa el preset de carga y vuelve a intentarlo.');
+    }
+
     return datos.secure_url;
+}
+
+function pdfAnteriorNecesitaMigracion(archivo) {
+    if (!archivo?.url) return false;
+    const url = String(archivo.url);
+    const tipo = String(archivo.tipo || '').toLowerCase();
+    const nombre = String(archivo.nombre || '').toLowerCase();
+    const esPDF = tipo.includes('pdf') || /\.pdf(?:$|[?#])/i.test(url) || /\.pdf$/i.test(nombre);
+    return esPDF && /\/image\/upload\//i.test(url);
 }
 
 function extraerCodigoDesdeQR(valor) {
@@ -1119,12 +1145,22 @@ async function guardarPieza(e) {
         async function cargarArchivo(inputId, anterior, etiqueta) {
             const input = $(inputId);
             const archivo = input.files && input.files[0];
-            if (!archivo) return anterior || null;
+            if (!archivo) {
+                // Los PDF antiguos en image/upload son los que pueden devolver 401;
+                // deben seleccionarse de nuevo para migrarlos a raw/upload.
+                if (pdfAnteriorNecesitaMigracion(anterior)) {
+                    throw new Error(`El archivo ${etiqueta} guardado anteriormente está en image/upload y Cloudinary devuelve 401. Selecciona nuevamente ese PDF para guardarlo como raw/upload.`);
+                }
+                return anterior || null;
+            }
+            const nombreArchivo = String(archivo.name || '');
+            const extension = nombreArchivo.includes('.') ? nombreArchivo.split('.').pop().toLowerCase() : '';
+            const esPDF = archivo.type === 'application/pdf' || extension === 'pdf';
+            const tipoRecurso = esPDF ? 'raw' : (archivo.type && archivo.type.startsWith('image/') ? 'image' : 'auto');
             btn.textContent = `☁️ Subiendo ${etiqueta}...`;
-            const url = await subirACloudinary(archivo);
-            const extension = archivo.name.includes('.') ? archivo.name.split('.').pop().toLowerCase() : '';
+            const url = await subirACloudinary(archivo, tipoRecurso);
             const tipoInferido = extension === 'pdf' ? 'application/pdf' : '';
-            return { url, nombre: archivo.name, tipo: archivo.type || tipoInferido };
+            return { url, nombre: nombreArchivo, tipo: archivo.type || tipoInferido };
         }
 
         const foto = await cargarArchivo('archivoFotoPieza', anteriores.foto, 'foto');
