@@ -105,7 +105,7 @@
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="block font-semibold mb-1">Categoría</label>
-                            <select id="categoria" onchange="actualizarCodigoVistaPrevia()" class="w-full border rounded-lg p-2.5" required>
+                            <select id="categoria" onchange="actualizarCodigoVistaPrevia()" class="w-full border rounded-lg p-2" required>
                                 <option value="V">Volteo (V)</option>
                                 <option value="L">Lowboy (L)</option>
                                 <option value="G">Góndola (G)</option>
@@ -114,7 +114,7 @@
                         </div>
                         <div>
                             <label class="block font-semibold mb-1">Proceso</label>
-                            <select id="proceso" onchange="actualizarCodigoVistaPrevia()" class="w-full border rounded-lg p-2.5" required>
+                            <select id="proceso" onchange="actualizarCodigoVistaPrevia()" class="w-full border rounded-lg p-2" required>
                                 <option value="D">Corte / Doblez (D)</option>
                                 <option value="F">Corte / Flat (F)</option>
                                 <option value="M">Maquinado (M)</option>
@@ -130,7 +130,7 @@
 
                     <div>
                         <label class="block font-semibold mb-1">Nombre de la pieza</label>
-                        <input type="text" id="nombre" placeholder="Ej. MENSULA IZQ." class="w-full border rounded-lg p-2.5" required>
+                        <input type="text" id="nombre" placeholder="Ej. MENSULA IZQ." class="w-full border rounded-lg p-2" required>
                     </div>
 
                     <!-- ARCHIVOS DE LA PIEZA: FOTO VISUAL + DOS PDF + CNC -->
@@ -166,18 +166,18 @@
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="block font-semibold mb-1">Material</label>
-                            <input type="text" id="material" placeholder="Ej. A-36" class="w-full border rounded-lg p-2.5" required>
+                            <input type="text" id="material" placeholder="Ej. A-36" class="w-full border rounded-lg p-2" required>
                         </div>
                         <div>
                             <label class="block font-semibold mb-1">Calibre / espesor</label>
-                            <input type="text" id="calibre" placeholder="Ej. 3/16, 10 mm" class="w-full border rounded-lg p-2.5" required>
+                            <input type="text" id="calibre" placeholder="Ej. 3/16, 10 mm" class="w-full border rounded-lg p-2" required>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="block font-semibold mb-1">Unidad de medida</label>
-                            <select id="unidad" class="w-full border rounded-lg p-2.5">
+                            <select id="unidad" class="w-full border rounded-lg p-2">
                                 <option value="pieza">Pieza</option>
                                 <option value="juego">Juego</option>
                                 <option value="par">Par</option>
@@ -187,44 +187,44 @@
                         </div>
                         <div>
                             <label class="block font-semibold mb-1">Ubicación en almacén</label>
-                            <input type="text" id="ubicacion" placeholder="Ej. Rack A-03" class="w-full border rounded-lg p-2.5">
+                            <input type="text" id="ubicacion" placeholder="Ej. Rack A-03" class="w-full border rounded-lg p-2">
                         </div>
                     </div>
 
                     <div>
                         <label class="block font-semibold mb-1">Aplicación principal</label>
-                        <input type="text" id="aplicacion" placeholder="Ej. Bastidor, suspensión, tanque..." class="w-full border rounded-lg p-2.5">
+                        <input type="text" id="aplicacion" placeholder="Ej. Bastidor, suspensión, tanque..." class="w-full border rounded-lg p-2">
                     </div>
 
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="block font-semibold mb-1">Proveedor / fabricante</label>
-                            <input type="text" id="proveedor" class="w-full border rounded-lg p-2.5" placeholder="Opcional">
+                            <input type="text" id="proveedor" class="w-full border rounded-lg p-2" placeholder="Opcional">
                         </div>
                         <div>
                             <label class="block font-semibold mb-1">No. de plano</label>
-                            <input type="text" id="numeroPlano" class="w-full border rounded-lg p-2.5" placeholder="Ej. PL-0258">
+                            <input type="text" id="numeroPlano" class="w-full border rounded-lg p-2" placeholder="Ej. PL-0258">
                         </div>
                     </div>
 
                     <div class="grid grid-cols-3 gap-2">
                         <div>
                             <label class="block font-semibold mb-1 text-xs">Stock actual</label>
-                            <input type="number" id="stockActual" value="0" min="0" class="w-full border rounded-lg p-2.5" required>
+                            <input type="number" id="stockActual" value="0" min="0" class="w-full border rounded-lg p-2" required>
                         </div>
                         <div>
                             <label class="block font-semibold mb-1 text-xs">Stock mínimo</label>
-                            <input type="number" id="stockMin" value="1" min="0" class="w-full border rounded-lg p-2.5" required>
+                            <input type="number" id="stockMin" value="1" min="0" class="w-full border rounded-lg p-2" required>
                         </div>
                         <div>
                             <label class="block font-semibold mb-1 text-xs">Stock máximo</label>
-                            <input type="number" id="stockMax" value="5" min="1" class="w-full border rounded-lg p-2.5" required>
+                            <input type="number" id="stockMax" value="5" min="1" class="w-full border rounded-lg p-2" required>
                         </div>
                     </div>
 
                     <div>
                         <label class="block font-semibold mb-1">Descripción / observaciones</label>
-                        <textarea id="descripcion" rows="3" class="w-full border rounded-lg p-2.5" placeholder="Características, medidas, observaciones..."></textarea>
+                        <textarea id="descripcion" rows="3" class="w-full border rounded-lg p-2" placeholder="Características, medidas, observaciones..."></textarea>
                     </div>
 
                     <input type="hidden" id="editDocId" value="">
@@ -246,14 +246,14 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2 mb-4">
-                    <input id="filtroNombre" oninput="aplicarFiltros()" type="search" placeholder="🔎 Buscar código o nombre..." class="border rounded-lg p-2.5 text-sm">
-                    <select id="filtroMaterial" onchange="aplicarFiltros()" class="border rounded-lg p-2.5 text-sm"><option value="">Todos los materiales</option></select>
-                    <select id="filtroCalibre" onchange="aplicarFiltros()" class="border rounded-lg p-2.5 text-sm"><option value="">Todos los calibres</option></select>
-                    <select id="filtroCategoria" onchange="aplicarFiltros()" class="border rounded-lg p-2.5 text-sm">
+                    <input id="filtroNombre" oninput="aplicarFiltros()" type="search" placeholder="🔎 Buscar código o nombre..." class="border rounded-lg p-2 text-sm">
+                    <select id="filtroMaterial" onchange="aplicarFiltros()" class="border rounded-lg p-2 text-sm"><option value="">Todos los materiales</option></select>
+                    <select id="filtroCalibre" onchange="aplicarFiltros()" class="border rounded-lg p-2 text-sm"><option value="">Todos los calibres</option></select>
+                    <select id="filtroCategoria" onchange="aplicarFiltros()" class="border rounded-lg p-2 text-sm">
                         <option value="">Todas las categorías</option>
                         <option value="V">Volteo</option><option value="L">Lowboy</option><option value="G">Góndola</option><option value="X">Genérico</option>
                     </select>
-                    <select id="filtroEstadoStock" onchange="aplicarFiltros()" class="border rounded-lg p-2.5 text-sm">
+                    <select id="filtroEstadoStock" onchange="aplicarFiltros()" class="border rounded-lg p-2 text-sm">
                         <option value="">Todo el stock</option><option value="BAJO">Bajo mínimo</option><option value="OK">Stock normal</option><option value="CERO">Sin stock</option>
                     </select>
                 </div>
@@ -283,14 +283,14 @@
                     <table class="w-full text-xs text-left min-w-[980px]">
                         <thead>
                             <tr class="bg-slate-100 text-slate-700 border-b">
-                                <th class="p-2.5">Código</th>
-                                <th class="p-2.5">Nombre</th>
-                                <th class="p-2.5">Foto / archivos</th>
-                                <th class="p-2.5">Material</th>
-                                <th class="p-2.5">Ubicación</th>
-                                <th class="p-2.5 text-center">Stock</th>
-                                <th class="p-2.5">Estado</th>
-                                <th class="p-2.5 text-center">Acciones</th>
+                                <th class="p-2">Código</th>
+                                <th class="p-2">Nombre</th>
+                                <th class="p-2">Foto / archivos</th>
+                                <th class="p-2">Material</th>
+                                <th class="p-2">Ubicación</th>
+                                <th class="p-2 text-center">Stock</th>
+                                <th class="p-2">Estado</th>
+                                <th class="p-2 text-center">Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="tablaPiezasBody" class="divide-y"><tr><td colspan="8" class="p-5 text-center text-slate-400">Cargando...</td></tr></tbody>
@@ -316,29 +316,29 @@
                     <input type="hidden" id="editPlacaId" value="">
                     <input type="hidden" id="archivoPlacaUrlActual" value="">
                     <div class="grid grid-cols-2 gap-2">
-                        <div><label class="block font-semibold mb-1">Código de placa</label><input type="text" id="codigoPlaca" class="w-full border rounded-lg p-2.5 font-mono font-bold" placeholder="PLACA-001" required></div>
-                        <div><label class="block font-semibold mb-1">Estado</label><select id="estadoPlaca" class="w-full border rounded-lg p-2.5"><option value="Disponible">Disponible</option><option value="Reservada">Reservada</option><option value="Consumida">Consumida</option></select></div>
+                        <div><label class="block font-semibold mb-1">Código de placa</label><input type="text" id="codigoPlaca" class="w-full border rounded-lg p-2 font-mono font-bold" placeholder="PLACA-001" required></div>
+                        <div><label class="block font-semibold mb-1">Estado</label><select id="estadoPlaca" class="w-full border rounded-lg p-2"><option value="Disponible">Disponible</option><option value="Reservada">Reservada</option><option value="Consumida">Consumida</option></select></div>
                     </div>
                     <div class="grid grid-cols-2 gap-2">
-                        <div><label class="block font-semibold mb-1">Material</label><input type="text" id="materialPlaca" placeholder="Ej. A-36" class="w-full border rounded-lg p-2.5" required></div>
-                        <div><label class="block font-semibold mb-1">Calibre / espesor</label><input type="text" id="calibrePlaca" placeholder="Ej. 3/16" class="w-full border rounded-lg p-2.5" required></div>
+                        <div><label class="block font-semibold mb-1">Material</label><input type="text" id="materialPlaca" placeholder="Ej. A-36" class="w-full border rounded-lg p-2" required></div>
+                        <div><label class="block font-semibold mb-1">Calibre / espesor</label><input type="text" id="calibrePlaca" placeholder="Ej. 3/16" class="w-full border rounded-lg p-2" required></div>
                     </div>
                     <div class="grid grid-cols-3 gap-2">
-                        <div><label class="block font-semibold mb-1">Largo (mm)</label><input type="number" id="largoPlaca" min="0" step="0.01" class="w-full border rounded-lg p-2.5" required></div>
-                        <div><label class="block font-semibold mb-1">Ancho (mm)</label><input type="number" id="anchoPlaca" min="0" step="0.01" class="w-full border rounded-lg p-2.5" required></div>
-                        <div><label class="block font-semibold mb-1">Cantidad</label><input type="number" id="cantidadPlaca" min="1" value="1" class="w-full border rounded-lg p-2.5" required></div>
+                        <div><label class="block font-semibold mb-1">Largo (mm)</label><input type="number" id="largoPlaca" min="0" step="0.01" class="w-full border rounded-lg p-2" required></div>
+                        <div><label class="block font-semibold mb-1">Ancho (mm)</label><input type="number" id="anchoPlaca" min="0" step="0.01" class="w-full border rounded-lg p-2" required></div>
+                        <div><label class="block font-semibold mb-1">Cantidad</label><input type="number" id="cantidadPlaca" min="1" value="1" class="w-full border rounded-lg p-2" required></div>
                     </div>
                     <div class="grid grid-cols-2 gap-2">
-                        <div><label class="block font-semibold mb-1">Ubicación</label><input type="text" id="ubicacionPlaca" placeholder="Ej. Rack P-02" class="w-full border rounded-lg p-2.5"></div>
-                        <div><label class="block font-semibold mb-1">Origen</label><input type="text" id="origenPlaca" placeholder="Ej. Corte de Lowboy 025" class="w-full border rounded-lg p-2.5"></div>
+                        <div><label class="block font-semibold mb-1">Ubicación</label><input type="text" id="ubicacionPlaca" placeholder="Ej. Rack P-02" class="w-full border rounded-lg p-2"></div>
+                        <div><label class="block font-semibold mb-1">Origen</label><input type="text" id="origenPlaca" placeholder="Ej. Corte de Lowboy 025" class="w-full border rounded-lg p-2"></div>
                     </div>
-                    <div><label class="block font-semibold mb-1">Piezas asociadas / cortes posibles</label><textarea id="piezasAprovechables" rows="3" class="w-full border rounded-lg p-2.5" placeholder="Ej. Ménsula P-014, refuerzo P-032, soporte P-041..."></textarea></div>
+                    <div><label class="block font-semibold mb-1">Piezas asociadas / cortes posibles</label><textarea id="piezasAprovechables" rows="3" class="w-full border rounded-lg p-2" placeholder="Ej. Ménsula P-014, refuerzo P-032, soporte P-041..."></textarea></div>
                     <div class="bg-slate-50 border border-slate-200 rounded-lg p-3">
                         <label class="block font-semibold mb-1">Foto, plano o documento</label>
                         <input type="file" id="archivoPlaca" accept="image/*,.pdf,.dwg,.dxf,.doc,.docx,.xls,.xlsx,.zip,.txt" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-orange-100 file:text-orange-700">
                         <div id="vistaArchivoPlaca" class="hidden text-xs text-blue-600 mt-2 font-semibold">📎 <a id="enlaceArchivoPlacaActual" href="#" target="_blank" class="underline">Ver adjunto</a></div>
                     </div>
-                    <div><label class="block font-semibold mb-1">Observaciones</label><textarea id="observacionesPlaca" rows="3" class="w-full border rounded-lg p-2.5" placeholder="Condición, óxido, deformación, medidas especiales, etc."></textarea></div>
+                    <div><label class="block font-semibold mb-1">Observaciones</label><textarea id="observacionesPlaca" rows="3" class="w-full border rounded-lg p-2" placeholder="Condición, óxido, deformación, medidas especiales, etc."></textarea></div>
                     <div class="flex gap-2 pt-2">
                         <button type="submit" id="btnGuardarPlaca" class="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-lg shadow">💾 Guardar placa</button>
                         <button type="button" id="btnCancelarEdicionPlaca" onclick="cancelarEdicionPlaca()" class="hidden bg-slate-200 hover:bg-slate-300 px-4 rounded-lg font-semibold">Cancelar</button>
@@ -349,14 +349,14 @@
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border-b pb-3 mb-4">
                     <div><h2 class="font-bold text-lg">Placas sobrantes disponibles</h2><p class="text-xs text-slate-500">Consulta sobrantes que pueden aprovecharse antes de comprar material nuevo.</p></div>
                     <div class="flex flex-col sm:flex-row gap-2">
-                        <input id="filtroPlacas" oninput="renderPlacas()" type="search" placeholder="🔎 Buscar placa, material o pieza..." class="border rounded-lg p-2.5 text-sm md:w-72">  
+                        <input id="filtroPlacas" oninput="renderPlacas()" type="search" placeholder="🔎 Buscar placa, material o pieza..." class="border rounded-lg p-2 text-sm md:w-72">  
                         <button onclick="descargarPDFPlacas()"class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap">📄 Descargar PDF</button>
                     </div>
                 </div>
                 <div class="overflow-x-auto border rounded-lg">
                     <table class="w-full text-xs text-left min-w-[1050px]">
                         <thead><tr class="bg-slate-100 text-slate-700 border-b">
-                            <th class="p-2.5">Código</th><th class="p-2.5">Material / espesor</th><th class="p-2.5">Medidas</th><th class="p-2.5">Cantidad</th><th class="p-2.5">Ubicación</th><th class="p-2.5">Piezas asociadas</th><th class="p-2.5">Estado</th><th class="p-2.5">Acciones</th>
+                            <th class="p-2">Código</th><th class="p-2">Material / espesor</th><th class="p-2">Medidas</th><th class="p-2">Cantidad</th><th class="p-2">Ubicación</th><th class="p-2">Piezas asociadas</th><th class="p-2">Estado</th><th class="p-2">Acciones</th>
                         </tr></thead>
                         <tbody id="tablaPlacasBody" class="divide-y"><tr><td colspan="8" class="p-5 text-center text-slate-400">Cargando...</td></tr></tbody>
                     </table>
@@ -377,24 +377,24 @@
                     <input type="hidden" id="editSolicitudId" value="">
                     <div>
                         <label class="block font-semibold mb-1">Pieza</label>
-                        <select id="solicitudPieza" class="w-full border rounded-lg p-2.5" required><option value="">Selecciona una pieza</option></select>
+                        <select id="solicitudPieza" class="w-full border rounded-lg p-2" required><option value="">Selecciona una pieza</option></select>
                     </div>
                     <div class="grid grid-cols-2 gap-2">
-                        <div><label class="block font-semibold mb-1">Cantidad</label><input type="number" id="solicitudCantidad" min="1" value="1" class="w-full border rounded-lg p-2.5" required></div>
+                        <div><label class="block font-semibold mb-1">Cantidad</label><input type="number" id="solicitudCantidad" min="1" value="1" class="w-full border rounded-lg p-2" required></div>
                         <div><label class="block font-semibold mb-1">Prioridad</label>
-                            <select id="solicitudPrioridad" class="w-full border rounded-lg p-2.5">
+                            <select id="solicitudPrioridad" class="w-full border rounded-lg p-2">
                                 <option value="Normal">Normal</option><option value="Alta">Alta</option><option value="Urgente">Urgente</option>
                             </select>
                         </div>
                     </div>
-                    <div><label class="block font-semibold mb-1">Solicita</label><input type="text" id="solicitudSolicitante" placeholder="Nombre del responsable" class="w-full border rounded-lg p-2.5" required></div>
+                    <div><label class="block font-semibold mb-1">Solicita</label><input type="text" id="solicitudSolicitante" placeholder="Nombre del responsable" class="w-full border rounded-lg p-2" required></div>
                     <div>
                         <label class="block font-semibold mb-1">Estado</label>
-                        <select id="solicitudEstado" class="w-full border rounded-lg p-2.5">
+                        <select id="solicitudEstado" class="w-full border rounded-lg p-2">
                             <option value="Pendiente">Pendiente</option><option value="En proceso">En proceso</option><option value="Completada">Completada</option><option value="Cancelada">Cancelada</option>
                         </select>
                     </div>
-                    <div><label class="block font-semibold mb-1">Motivo / comentario</label><textarea id="solicitudMotivo" rows="4" placeholder="Ej. Se agotó la pieza y hay producción programada..." class="w-full border rounded-lg p-2.5"></textarea></div>
+                    <div><label class="block font-semibold mb-1">Motivo / comentario</label><textarea id="solicitudMotivo" rows="4" placeholder="Ej. Se agotó la pieza y hay producción programada..." class="w-full border rounded-lg p-2"></textarea></div>
                     
                     <div class="flex gap-2">
                         <button type="submit" id="btnGuardarSolicitud" class="flex-1 w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-lg">📝 Guardar solicitud</button>
@@ -410,7 +410,7 @@
                 </div>
                 <div class="overflow-x-auto border rounded-lg">
                     <table class="w-full text-xs text-left min-w-[850px]">
-                        <thead><tr class="bg-slate-100 border-b"><th class="p-2.5">Fecha</th><th class="p-2.5">Pieza</th><th class="p-2.5">Cantidad</th><th class="p-2.5">Prioridad</th><th class="p-2.5">Solicita</th><th class="p-2.5">Estado</th><th class="p-2.5">Acciones</th></tr></thead>
+                        <thead><tr class="bg-slate-100 border-b"><th class="p-2">Fecha</th><th class="p-2">Pieza</th><th class="p-2">Cantidad</th><th class="p-2">Prioridad</th><th class="p-2">Solicita</th><th class="p-2">Estado</th><th class="p-2">Acciones</th></tr></thead>
                         <tbody id="tablaSolicitudesBody" class="divide-y"><tr><td colspan="7" class="p-5 text-center text-slate-400">Cargando...</td></tr></tbody>
                     </table>
                 </div>
@@ -430,7 +430,7 @@
             </div>
             <div class="overflow-x-auto border rounded-lg">
                 <table class="w-full text-xs text-left min-w-[980px]">
-                    <thead><tr class="bg-slate-100 border-b"><th class="p-2.5">Fecha</th><th class="p-2.5">Pieza</th><th class="p-2.5">Tipo</th><th class="p-2.5">Cantidad</th><th class="p-2.5">Stock resultante</th><th class="p-2.5">Responsable</th><th class="p-2.5">Motivo</th><th class="p-2.5 text-center">Acción</th></tr></thead>
+                    <thead><tr class="bg-slate-100 border-b"><th class="p-2">Fecha</th><th class="p-2">Pieza</th><th class="p-2">Tipo</th><th class="p-2">Cantidad</th><th class="p-2">Stock resultante</th><th class="p-2">Responsable</th><th class="p-2">Motivo</th><th class="p-2 text-center">Acción</th></tr></thead>
                     <tbody id="tablaMovimientosBody" class="divide-y"><tr><td colspan="8" class="p-5 text-center text-slate-400">Cargando...</td></tr></tbody>
                 </table>
             </div>
@@ -481,13 +481,13 @@
         <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl">
             <div class="flex items-center justify-between border-b pb-3 mb-4"><h3 class="font-bold text-lg">Registrar movimiento</h3><button onclick="cerrarMovimiento()" class="text-slate-500 text-2xl">×</button></div>
             <form onsubmit="guardarMovimiento(event)" class="space-y-3 text-sm">
-                <div><label class="block font-semibold mb-1">Pieza</label><select id="movPieza" required class="w-full border rounded-lg p-2.5"><option value="">Selecciona una pieza</option></select></div>
+                <div><label class="block font-semibold mb-1">Pieza</label><select id="movPieza" required class="w-full border rounded-lg p-2"><option value="">Selecciona una pieza</option></select></div>
                 <div class="grid grid-cols-2 gap-2">
-                    <div><label class="block font-semibold mb-1">Tipo</label><select id="movTipo" class="w-full border rounded-lg p-2.5"><option value="ENTRADA">Entrada</option><option value="SALIDA">Salida</option><option value="AJUSTE">Ajuste absoluto</option></select></div>
-                    <div><label class="block font-semibold mb-1">Cantidad</label><input id="movCantidad" type="number" min="1" value="1" required class="w-full border rounded-lg p-2.5"></div>
+                    <div><label class="block font-semibold mb-1">Tipo</label><select id="movTipo" class="w-full border rounded-lg p-2"><option value="ENTRADA">Entrada</option><option value="SALIDA">Salida</option><option value="AJUSTE">Ajuste absoluto</option></select></div>
+                    <div><label class="block font-semibold mb-1">Cantidad</label><input id="movCantidad" type="number" min="1" value="1" required class="w-full border rounded-lg p-2"></div>
                 </div>
-                <div><label class="block font-semibold mb-1">Responsable</label><input id="movResponsable" required class="w-full border rounded-lg p-2.5" placeholder="Nombre del responsable"></div>
-                <div><label class="block font-semibold mb-1">Motivo</label><textarea id="movMotivo" rows="3" class="w-full border rounded-lg p-2.5" placeholder="Producción, compra, consumo, corrección..."></textarea></div>
+                <div><label class="block font-semibold mb-1">Responsable</label><input id="movResponsable" required class="w-full border rounded-lg p-2" placeholder="Nombre del responsable"></div>
+                <div><label class="block font-semibold mb-1">Motivo</label><textarea id="movMotivo" rows="3" class="w-full border rounded-lg p-2" placeholder="Producción, compra, consumo, corrección..."></textarea></div>
                 <button type="submit" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-lg">💾 Guardar movimiento</button>
             </form>
         </div>
@@ -526,9 +526,9 @@
             </div>
             <div id="panelSalidaDetalle" class="mt-5 border-t pt-4 hidden">
                 <div class="flex flex-col md:flex-row md:items-end gap-3">
-                    <div class="md:w-32"><label class="block text-xs font-semibold mb-1">Cantidad a retirar</label><input id="salidaCantidadDetalle" type="number" min="1" value="1" class="w-full border rounded-lg p-2.5"></div>
-                    <div class="flex-1"><label class="block text-xs font-semibold mb-1">Responsable</label><input id="salidaResponsableDetalle" type="text" class="w-full border rounded-lg p-2.5" placeholder="Nombre del responsable"></div>
-                    <div class="flex-1"><label class="block text-xs font-semibold mb-1">Motivo</label><input id="salidaMotivoDetalle" type="text" class="w-full border rounded-lg p-2.5" placeholder="Consumo, producción, entrega..."></div>
+                    <div class="md:w-32"><label class="block text-xs font-semibold mb-1">Cantidad a retirar</label><input id="salidaCantidadDetalle" type="number" min="1" value="1" class="w-full border rounded-lg p-2"></div>
+                    <div class="flex-1"><label class="block text-xs font-semibold mb-1">Responsable</label><input id="salidaResponsableDetalle" type="text" class="w-full border rounded-lg p-2" placeholder="Nombre del responsable"></div>
+                    <div class="flex-1"><label class="block text-xs font-semibold mb-1">Motivo</label><input id="salidaMotivoDetalle" type="text" class="w-full border rounded-lg p-2" placeholder="Consumo, producción, entrega..."></div>
                     <button id="btnRetirarDetalle" onclick="retirarStockDesdeDetalle()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-4 rounded-lg shadow">📤 Retirar del stock</button>
                 </div>
                 <p class="text-[11px] text-slate-500 mt-2">La salida se registra también en <b>Movimientos</b> para conservar la trazabilidad.</p>
@@ -1423,14 +1423,14 @@ function renderTablaPiezas(piezasParaMostrar) {
 
         tbody.innerHTML += `
             <tr class="hover:bg-slate-50 border-b">
-                <td class="p-2.5 font-mono font-bold text-orange-700">${escapeHtml(p.codigoPieza)}</td>
-                <td class="p-2.5 font-semibold">${escapeHtml(p.nombre)}</td>
-                <td class="p-2.5 text-center">${archivoCell}</td>
-                <td class="p-2.5">${escapeHtml(p.material || '-')} <span class="text-xs text-slate-400">(${escapeHtml(p.calibre || '-')})</span></td>
-                <td class="p-2.5">${escapeHtml(p.ubicacion || '-')}</td>
-                <td class="p-2.5 text-center font-bold">${Number(p.stockActual) || 0}</td>
-                <td class="p-2.5">${estadoStr}</td>
-                <td class="p-2.5">
+                <td class="p-2 font-mono font-bold text-orange-700">${escapeHtml(p.codigoPieza)}</td>
+                <td class="p-2 font-semibold">${escapeHtml(p.nombre)}</td>
+                <td class="p-2 text-center">${archivoCell}</td>
+                <td class="p-2">${escapeHtml(p.material || '-')} <span class="text-xs text-slate-400">(${escapeHtml(p.calibre || '-')})</span></td>
+                <td class="p-2">${escapeHtml(p.ubicacion || '-')}</td>
+                <td class="p-2 text-center font-bold">${Number(p.stockActual) || 0}</td>
+                <td class="p-2">${estadoStr}</td>
+                <td class="p-2">
                     <div class="flex flex-wrap justify-center gap-1">
                         <button onclick="abrirDetallePieza('${p.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-800 px-2 py-1 rounded font-bold">👁️ Ver</button>
                         <button onclick="verQR('${p.id}')" class="bg-orange-100 hover:bg-orange-200 text-orange-800 px-2 py-1 rounded font-bold">🏷️ QR</button>
@@ -1575,14 +1575,14 @@ function renderPlacas() {
         const estadoClass = estado === 'Disponible' ? 'bg-emerald-100 text-emerald-800' : estado === 'Reservada' ? 'bg-amber-100 text-amber-800' : 'bg-slate-200 text-slate-700';
         tbody.innerHTML += `
             <tr class="hover:bg-slate-50 border-b">
-                <td class="p-2.5 font-mono font-bold text-orange-700">${escapeHtml(p.codigoPlaca)}</td>
-                <td class="p-2.5">${escapeHtml(p.material || '-')} <span class="text-slate-400">(${escapeHtml(p.calibre || '-')})</span></td>
-                <td class="p-2.5">${Number(p.largo)||0} × ${Number(p.ancho)||0} mm</td>
-                <td class="p-2.5 font-bold">${Number(p.cantidad)||0}</td>
-                <td class="p-2.5">${escapeHtml(p.ubicacion || '-')}</td>
-                <td class="p-2.5 max-w-[260px]">${escapeHtml(p.piezasAprovechables || '-')}</td>
-                <td class="p-2.5"><span class="${estadoClass} px-2 py-1 rounded text-[10px] font-bold">${escapeHtml(estado)}</span></td>
-                <td class="p-2.5">
+                <td class="p-2 font-mono font-bold text-orange-700">${escapeHtml(p.codigoPlaca)}</td>
+                <td class="p-2">${escapeHtml(p.material || '-')} <span class="text-slate-400">(${escapeHtml(p.calibre || '-')})</span></td>
+                <td class="p-2">${Number(p.largo)||0} × ${Number(p.ancho)||0} mm</td>
+                <td class="p-2 font-bold">${Number(p.cantidad)||0}</td>
+                <td class="p-2">${escapeHtml(p.ubicacion || '-')}</td>
+                <td class="p-2 max-w-[260px]">${escapeHtml(p.piezasAprovechables || '-')}</td>
+                <td class="p-2"><span class="${estadoClass} px-2 py-1 rounded text-[10px] font-bold">${escapeHtml(estado)}</span></td>
+                <td class="p-2">
                     <div class="flex items-center gap-1">
                         ${obtenerUrlAdjunto(p) ? `<a href="${escapeHtml(obtenerUrlAdjunto(p))}" target="_blank" rel="noopener noreferrer" class="bg-purple-100 text-purple-800 px-2 py-1 rounded font-bold" title="Ver adjunto">📎</a>` : ''}
                         <button onclick="editarPlaca('${p.id}')" class="bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded font-bold">Editar</button>
@@ -1762,13 +1762,13 @@ function renderSolicitudes() {
         const fecha = s.createdAt && s.createdAt.toDate ? s.createdAt.toDate().toLocaleDateString() : 'Reciente';
         tbody.innerHTML += `
             <tr class="hover:bg-slate-50 border-b">
-                <td class="p-2.5">${fecha}</td>
-                <td class="p-2.5 font-bold">${s.piezaCodigo} <span class="text-slate-500 font-normal">(${s.piezaNombre})</span></td>
-                <td class="p-2.5">${s.cantidad}</td>
-                <td class="p-2.5">${s.prioridad}</td>
-                <td class="p-2.5">${s.solicitante}</td>
-                <td class="p-2.5 font-bold text-orange-600">${s.estado}</td>
-                <td class="p-2.5">
+                <td class="p-2">${fecha}</td>
+                <td class="p-2 font-bold">${s.piezaCodigo} <span class="text-slate-500 font-normal">(${s.piezaNombre})</span></td>
+                <td class="p-2">${s.cantidad}</td>
+                <td class="p-2">${s.prioridad}</td>
+                <td class="p-2">${s.solicitante}</td>
+                <td class="p-2 font-bold text-orange-600">${s.estado}</td>
+                <td class="p-2">
                     <button onclick="editarSolicitud('${s.id}')" class="bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded font-bold mr-1">Editar</button>
                     <button onclick="eliminarSolicitud('${s.id}')" class="bg-red-100 hover:bg-red-200 text-red-800 px-2 py-1 rounded font-bold">Borrar</button>
                 </td>
@@ -1865,14 +1865,14 @@ function renderMovimientos() {
         const claseTipo = m.tipo === 'ENTRADA' ? 'text-green-600' : m.tipo === 'SALIDA' ? 'text-red-600' : 'text-blue-600';
         tbody.innerHTML += `
             <tr class="hover:bg-slate-50 border-b">
-                <td class="p-2.5">${escapeHtml(fecha)}</td>
-                <td class="p-2.5 font-bold">${escapeHtml(m.piezaCodigo || '')}${m.piezaNombre ? `<span class="block text-slate-500 font-normal">${escapeHtml(m.piezaNombre)}</span>` : ''}</td>
-                <td class="p-2.5 font-bold ${claseTipo}">${escapeHtml(m.tipo || '')}</td>
-                <td class="p-2.5">${Number(m.cantidad) || 0}</td>
-                <td class="p-2.5">${Number(m.stockResultante) || 0}</td>
-                <td class="p-2.5">${escapeHtml(m.responsable || '')}</td>
-                <td class="p-2.5">${escapeHtml(m.motivo || '')}</td>
-                <td class="p-2.5 text-center">
+                <td class="p-2">${escapeHtml(fecha)}</td>
+                <td class="p-2 font-bold">${escapeHtml(m.piezaCodigo || '')}${m.piezaNombre ? `<span class="block text-slate-500 font-normal">${escapeHtml(m.piezaNombre)}</span>` : ''}</td>
+                <td class="p-2 font-bold ${claseTipo}">${escapeHtml(m.tipo || '')}</td>
+                <td class="p-2">${Number(m.cantidad) || 0}</td>
+                <td class="p-2">${Number(m.stockResultante) || 0}</td>
+                <td class="p-2">${escapeHtml(m.responsable || '')}</td>
+                <td class="p-2">${escapeHtml(m.motivo || '')}</td>
+                <td class="p-2 text-center">
                     <button onclick="eliminarMovimiento('${m.id}')" title="Eliminar solo el registro del historial; no modifica el stock" aria-label="Eliminar movimiento" class="bg-red-100 hover:bg-red-200 text-red-700 w-7 h-7 rounded font-black text-base">×</button>
                 </td>
             </tr>
